@@ -130,7 +130,7 @@ class MainScreen(MDScreen):
         #nomes = ["sala 01", "sala 02", "sala 03", "sala 04", "lab frc", "Senai lab"]
         for i in range(num_buttons):
             button_id = f"button_{i}"
-            button_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(120), spacing=dp(5),
+            button_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(100), spacing=dp(5),
                                       padding=[dp(50), dp(10), dp(10), dp(10)])
 
             number_label = Label(

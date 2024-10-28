@@ -24,7 +24,12 @@ kv = """
             font_style: "H6"
             halign: "center"
             theme_text_color: "Secondary"
-
+        Image:
+            source: "src/digital_red.png"  # Coloque o caminho correto para a imagem da logo
+            size_hint_y: None
+            height: dp(100)
+            allow_stretch: True
+            keep_ratio: True
         MDRaisedButton:
             text: "Voltar"
             pos_hint: {"center_x": 0.5}
