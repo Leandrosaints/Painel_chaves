@@ -6,13 +6,14 @@ from kivy.uix.label import Label
 from login import LoginScreen
 from gestor import MainScreen  # Importar telas
 from infoScreen import InfoScreen
-
+from info_user import UserInfoScreen
 
 kv = '''
 MDScreenManager:
     LoginScreen:
     MainScreen:
     InfoScreen:
+    UserInfoScreen
 '''
 
 class MainApp(MDApp):
@@ -25,6 +26,7 @@ class MainApp(MDApp):
             self.manager.add_widget(LoginScreen(name="login"))
             self.manager.add_widget(MainScreen(name="main"))
             self.manager.add_widget(InfoScreen(name="info_screen"))
+            self.manager.add_widget(UserInfoScreen(name='info_user'))
 
             return self.manager
         except Exception as e:
@@ -39,6 +41,26 @@ class MainApp(MDApp):
         except Exception as e:
             self.show_error_popup("Erro ao exibir informações", str(e))
 
+    def show_user_info_screen(self, user_data):
+        try:
+            # Obtém a tela de informações do usuário
+            user_info_screen = self.root.get_screen('info_user')
+
+            # Preenche os campos de texto com os dados do usuário
+            user_info_screen.ids.full_name.text = user_data.get("full_name", "Não informado")
+            user_info_screen.ids.email.text = user_data.get("email", "Não informado")
+            user_info_screen.ids.phone.text = user_data.get("phone", "Não informado")
+            user_info_screen.ids.address.text = user_data.get("address", "Não informado")
+            user_info_screen.ids.neighborhood.text = user_data.get("neighborhood", "Não informado")
+            user_info_screen.ids.house_number.text = user_data.get("house_number", "Não informado")
+            user_info_screen.ids.city.text = user_data.get("city", "Não informado")
+            user_info_screen.ids.state.text = user_data.get("state", "Não informado")
+
+            # Muda a tela atual para `user_info_screen`
+            self.root.current = 'info_user'
+        except Exception as e:
+            # Mostra um popup em caso de erro
+            self.show_error_popup("Erro ao exibir informações do usuário", str(e))
     def go_back_to_main_screen(self):
         try:
             self.root.current = 'main'

@@ -55,8 +55,10 @@ kv = """
 
                     MDList:
                         OneLineListItem:
-                            text: "Opção 1"
-                            on_release: nav_drawer.set_state("close")
+                            text: "Perfil"
+                            on_release:
+                                nav_drawer.set_state("close")
+                                app.show_user_info_screen({"full_name": "João Silva", "email": "joao@example.com", "phone": "123456789", "address": "Rua Exemplo, 123", "neighborhood": "Centro", "house_number": "123", "city": "Cidade Exemplo", "state": "Estado Exemplo"})
                         OneLineListItem:
                             text: "Opção 2"
                             on_release: nav_drawer.set_state("close")
