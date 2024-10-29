@@ -10,6 +10,10 @@ kv = """
             padding: dp(20)
             spacing: dp(20)
             adaptive_height: True
+            MDIconButton:
+                icon: "arrow-left"
+                pos_hint: {"center_y": 0.5}
+                on_release: app.root.current = "main"  # Substitua "previous_screen" pelo ID da tela anterior
 
             MDLabel:
                 text: "Informações do Usuário"
