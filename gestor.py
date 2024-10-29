@@ -15,7 +15,8 @@ from kivy.uix.gridlayout import GridLayout
 kv = """
 <MainScreen>:
     container: container
-
+    
+        
     MDBoxLayout:
         orientation: 'vertical'
 
@@ -39,7 +40,7 @@ kv = """
                             size_hint_y: None
                             height: self.minimum_height
                             pos_hint: {"center_x": 0.5}
-
+                            
             MDNavigationDrawer:
                 id: nav_drawer
                 BoxLayout:
@@ -130,8 +131,8 @@ class MainScreen(MDScreen):
         #nomes = ["sala 01", "sala 02", "sala 03", "sala 04", "lab frc", "Senai lab"]
         for i in range(num_buttons):
             button_id = f"button_{i}"
-            button_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(100), spacing=dp(5),
-                                      padding=[dp(50), dp(10), dp(10), dp(10)])
+            button_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(100),
+                                      padding=[dp(10), dp(10), dp(10), dp(10)])
 
             number_label = Label(
                 text=str(i + 1),
@@ -143,7 +144,7 @@ class MainScreen(MDScreen):
             number_label.bind(size=number_label.setter('text_size'))
             button_layout.add_widget(number_label)
 
-            button = RotatableButton(id=button_id, size_hint=(None, None), size=(dp(80), dp(80)))
+            button = RotatableButton(id=button_id, size_hint=(None, None), pos_hint=({'center_x': 0.5, 'center_y': 0.5}), size=(dp(80), dp(80)))
             button.bind(on_release=lambda btn, index=i, name=nomes[i]: self.show_info_screen(index, name))
             button_image = Image(source=image_path, size=(dp(80), dp(80)))
             button.add_widget(button_image)

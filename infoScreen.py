@@ -11,25 +11,42 @@ kv = """
         pos_hint: {"center_x": 0.5, "center_y": 0.5}
         size_hint: 0.8, 0.6
 
-        MDLabel:
-            id: info_title
-            text: "Sala/Local"
-            font_style: "H4"
-            halign: "center"
-            theme_text_color: "Primary"
+        MDBoxLayout:
+            orientation: 'horizontal'
+            spacing: dp(10)
+            Image:
+                source: 'src/chave_open.png'
+                size_hint_x: None
+                width: dp(50)
+                height: dp(50)
+                allow_stretch: True
+                keep_ratio: True
+                pos_hint: {"center_y": 0.5}
+
+            MDLabel:
+                id: info_title
+                text: "Sala/Local"
+                font_style: "H5"
+                halign: "center"
+                theme_text_color: "Primary"
+                size_hint_y: None
+                height: dp(50)
+                pos_hint: {"center_y": 0.5}
 
         MDLabel:
             id: info_details
-            text: "Número da Sala"
+            text: "Digital para liberar"
             font_style: "H6"
             halign: "center"
             theme_text_color: "Secondary"
+
         Image:
-            source: "src/digital_red.png"  # Coloque o caminho correto para a imagem da logo
+            source: "src/digital_red.png"
             size_hint_y: None
             height: dp(100)
             allow_stretch: True
             keep_ratio: True
+
         MDRaisedButton:
             text: "Voltar"
             pos_hint: {"center_x": 0.5}
