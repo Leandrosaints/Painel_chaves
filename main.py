@@ -33,13 +33,11 @@ class MainApp(MDApp):
             self.show_error_popup("Erro ao construir a interface", str(e))
 
     def show_info_screen(self, index, name):
-        try:
-            info_screen = self.root.get_screen('info_screen')
-            info_screen.ids.info_title.text = f"Pegar a chave da {name}"
-            #info_screen.ids.info_details.text = f"O Número : {index + 1}"
-            self.root.current = 'info_screen'
-        except Exception as e:
-            self.show_error_popup("Erro ao exibir informações", str(e))
+
+        info_screen = self.root.get_screen('info_screen')
+        info_screen.ids.info_title.text = f"Pegar a chave da {name}"
+        #info_screen.ids.info_details.text = f"O Número : {index + 1}"
+        self.root.current = 'info_screen'
 
     def show_user_info_screen(self, user_data):
         try:

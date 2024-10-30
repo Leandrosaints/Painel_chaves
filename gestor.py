@@ -15,16 +15,49 @@ from kivy.uix.gridlayout import GridLayout
 kv = """
 <MainScreen>:
     container: container
-    
-        
+
     MDBoxLayout:
         orientation: 'vertical'
 
         MDTopAppBar:
-            title: "Minha Aplicação"
-            left_action_items: [["menu", lambda x: nav_drawer.set_state("toggle")]]
             elevation: 1
+            md_bg_color: [0.5, 1, 0.5, 1]   # Exemplo de cor azul (RGBA)
+            # Estrutura principal de layout horizontal para o botão, logo e título
+            MDBoxLayout:
+                orientation: 'horizontal'
+                spacing: dp(10)  # Espaçamento entre os elementos
+                padding: [dp(10), 0]  # Ajuste de padding no eixo X para centralizar
 
+                # Botão de menu à esquerda
+                MDIconButton:
+                    icon: "menu"
+                    on_release: nav_drawer.set_state("toggle")
+                    size_hint_x: None
+                    width: dp(40)
+
+                # Logo da aplicação
+                FitImage:
+                    source: "src/logo.png"
+                 
+                    size_hint_x: None  # Define o valor como None para que a largura seja definida em pixels
+                    size_hint_y: None  # Define o valor como None para que a altura seja definida em pixels
+                    width: dp(60)  # Define uma largura fixa para a imagem
+                    height: dp(60)  # Define uma altura fixa para a imagem
+                    pos_hint: {"top": 1.8}  # Posiciona a imagem no topo do layout pai
+                    allow_stretch: True  # Permite que a imagem se ajuste ao tamanho definido
+                    keep_ratio: True  # Mantém a proporção original da imagem
+                   
+                # Nome da aplicação
+                MDLabel:
+                    text: "Painel de chaves"
+                    halign: "center"
+                    theme_text_color: "Primary"
+                    font_style: "H6"
+                    size_hint_x: 0.5
+                    size_hint_y: 1
+                    #width: self.texture_size[0] + dp(10)  # Ajusta largura para o tamanho do texto
+
+        # Conteúdo do layout principal
         MDNavigationLayout:
             ScreenManager:
                 MDScreen:
@@ -40,7 +73,8 @@ kv = """
                             size_hint_y: None
                             height: self.minimum_height
                             pos_hint: {"center_x": 0.5}
-                            
+
+            # Menu de navegação
             MDNavigationDrawer:
                 id: nav_drawer
                 BoxLayout:

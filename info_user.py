@@ -10,7 +10,7 @@ kv = """
             padding: dp(20)
             spacing: dp(20)
             adaptive_height: True
-            MDIconButton:
+            MDIconButton:#button return para tela main
                 icon: "arrow-left"
                 pos_hint: {"center_y": 0.5}
                 on_release: app.root.current = "main"  # Substitua "previous_screen" pelo ID da tela anterior
