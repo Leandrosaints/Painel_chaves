@@ -1,12 +1,16 @@
 from kivymd.uix.screen import MDScreen
 from kivy.lang import Builder
-from kivy.properties import ObjectProperty
+from kivy.properties import ObjectProperty, ListProperty, NumericProperty
 from kivymd.uix.button import MDRaisedButton
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivy.animation import Animation
+from kivy.uix.image import Image
+from kivy.metrics import dp
 
 kv = """
 <InfoScreen>:
     name: 'info_screen'
-
     devolver_button: devolver_button
 
     MDBoxLayout:
@@ -23,12 +27,17 @@ kv = """
             spacing: dp(15)
 
             Image:
-                source: "src/logo.png"
+                source: "logo.png"
                 size_hint_x: None
                 width: dp(60)
                 allow_stretch: True
                 keep_ratio: True
-
+            MDLabel:
+                text: "N da Chave: "
+                font_style: "H5"
+                theme_text_color: "Primary"
+                halign: "center"
+                valign: "middle"
             MDLabel:
                 id: info_title
                 text: "Número da Chave: 123"
@@ -43,7 +52,7 @@ kv = """
             padding: dp(25)
             spacing: dp(25)
             size_hint_y: 0.6
-            elevation: 6
+            elevation: 2
             md_bg_color: app.theme_cls.bg_light
 
             # Seção de Informações do Professor
@@ -82,7 +91,7 @@ kv = """
                     size_hint_x: 0.4
                     spacing: dp(10)
                     Image:
-                        source: "src/digital_red.png"
+                        source: "digital_red.png"
                         size_hint_y: None
                         height: dp(120)
                         allow_stretch: True
@@ -103,20 +112,25 @@ kv = """
                     orientation: 'vertical'
                     size_hint_x: 0.4
                     spacing: dp(15)
-
+                    MDLabel:
+                        id: status_label  # Label para exibir o status
+                        text: "Status: Pronto para ação"
+                        font_style: "Subtitle1"
+                        theme_text_color: "Primary"
+                        halign: "center"
                     MDRaisedButton:
                         text: "Cancelar"
                         md_bg_color: app.theme_cls.error_color
                         pos_hint: {"center_x": 0.5}
-                        on_release: app.cancel_action()
+                        on_release: app.root.current = 'main'
 
                     MDRaisedButton:
+                        id: pegar_button  # Adicionado ID para o botão "Pegar"
                         text: "Pegar"
                         md_bg_color: app.theme_cls.primary_color
                         pos_hint: {"center_x": 0.5}
-                        on_release: root.show_devolver_button()
+                        on_release: root.toggle_key_status(root.current_key_id)
 
-                    # Botão "Devolver" oculto inicialmente
                     MDRaisedButton:
                         id: devolver_button
                         text: "Devolver"
@@ -124,15 +138,116 @@ kv = """
                         pos_hint: {"center_x": 0.5}
                         opacity: 0  # Inicialmente invisível
                         disabled: True  # Desativado até ser necessário
-                        on_release: app.devolver_action()
+                        on_release: root.toggle_key_status(root.current_key_id)
 """
 
 Builder.load_string(kv)
 
-class InfoScreen(MDScreen):
-    devolver_button = ObjectProperty(None)
+class Key:
+    def __init__(self, key_id):
+        self.key_id = key_id
+        self.is_occupied = False
 
+class InfoScreen(MDScreen):
+    status_label = ObjectProperty(None)  # Referência para o status label
+    keys = ListProperty([])  # Lista de chaves
+    current_key_id = NumericProperty(None)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.loading_dialog = None  # Adicione isso para inicializar a variável de diálogo
+
+    def update_title(self, name):
+        self.ids.info_title.text = f"{name}"
+
+    def toggle_key_status(self, key_id):
+        self.current_key_id = key_id  # Armazena o ID da chave atual
+        key = next((k for k in self.keys if k.key_id == key_id), None)
+        if key:
+            if key.is_occupied:
+                key.is_occupied = False  # A chave se torna livre
+                self.status_label.text = f"Status: Chave {key_id} devolvida e livre."
+                self.ids.devolver_button.opacity = 0
+                self.ids.devolver_button.disabled = True
+                self.ids.pegar_button.opacity = 1
+                self.ids.pegar_button.disabled = False
+            else:
+                key.is_occupied = True  # A chave se torna ocupada
+                self.status_label.text = f"Status: Chave {key_id} pegada e ocupada."
+                self.ids.devolver_button.opacity = 1
+                self.ids.devolver_button.disabled = False
+                self.ids.pegar_button.opacity = 0
+                self.ids.pegar_button.disabled = True
     def show_devolver_button(self):
-        # Torna o botão "Devolver" visível e habilitado
+        # Mostra o botão "Devolver" e oculta o botão "Pegar"
         self.devolver_button.opacity = 1
         self.devolver_button.disabled = False
+
+        pegar_button = self.ids.pegar_button
+        pegar_button.opacity = 0
+        pegar_button.disabled = True
+
+    def show_pegar_button(self):
+        # Mostra o botão "Pegar" e oculta o botão "Devolver"
+        self.devolver_button.opacity = 0
+        self.devolver_button.disabled = True
+
+        pegar_button = self.ids.pegar_button
+        pegar_button.opacity = 1
+        pegar_button.disabled = False
+
+        # Exibe o diálogo ao clicar no botão "Devolver"
+        self.show_loading_dialog()
+
+    def show_loading_dialog(self):
+        # Obtendo o texto do 'info_title' diretamente
+        info_text = self.ids.info_title.text
+        if not self.loading_dialog:
+            # Usando o texto de 'info_title' no diálogo
+            self.loading_dialog = MDDialog(
+                title=info_text,  # Texto obtido de 'info_title'
+                type="custom",
+                auto_dismiss=False,
+                content_cls=self.LoadingContent(dialog_ref=self)  # Passa referência do diálogo
+            )
+        self.loading_dialog.open()
+
+    class LoadingContent(MDBoxLayout):
+        def __init__(self, dialog_ref, **kwargs):
+            super().__init__(**kwargs)
+            self.orientation = 'vertical'
+            self.spacing = dp(20)
+            self.padding = dp(20)
+            self.dialog_ref = dialog_ref
+
+            # Ícone de verificação com animação
+            self.verified_icon = Image(
+                source="src/check.png",
+                size_hint=(None, None),
+                width=dp(50),
+                height=dp(50),
+                opacity=0  # Inicialmente invisível para a animação de entrada
+            )
+            self.add_widget(self.verified_icon)
+
+            # Iniciar animação de subida e pulso
+            self.start_entry_animation()
+
+            # Botão OK
+            self.ok_button = MDRaisedButton(
+                text="OK",
+                pos_hint={"center_x": 0.5},
+                on_release=self.dismiss_dialog
+            )
+            self.add_widget(self.ok_button)
+
+        def start_entry_animation(self):
+            # Animação de subida até o topo
+            entry_anim = Animation(y=self.height * 3.5, opacity=1, duration=1.2, t='out_cubic') + Animation(
+                size=(dp(55), dp(55)), duration=0.3, t='in_out_sine') + Animation(
+                size=(dp(50), dp(50)), duration=0.3, t='in_out_sine'
+            )
+            entry_anim.start(self.verified_icon)
+
+        def dismiss_dialog(self, *args):
+            self.dialog_ref.loading_dialog.dismiss()

@@ -1,19 +1,12 @@
 import time
 from kivy.config import Config
+
 Config.set('input', 'wm_pen', 'null')
 Config.set('input', 'wm_touch', 'null')
 
-from kivy.clock import Clock
-import gestor
 from kivy.lang import Builder
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
-
-
-
-#MDScreenManager:
-    #LoginScreen:
-    #LoadingScreen:
 
 KV = '''
 <LoginScreen>:
@@ -25,15 +18,17 @@ KV = '''
         pos_hint: {"center_x": 0.5, "center_y": 0.7}
         size_hint_x: None if root.width > 500 else 1
         width: min(root.width, dp(300))
+
         Image:
             source: "src/logo.png"  # Coloque o caminho correto para a imagem da logo
             size_hint_y: None
             height: dp(100)
             allow_stretch: True
             keep_ratio: True
+
         MDLabel:
             text: "Login"
-            font_style: "H3"
+            font_style: "H5"
             halign: "center"
             size_hint_y: None
             height: self.texture_size[1]
@@ -60,7 +55,12 @@ KV = '''
             pos_hint: {"center_x": 0.5}
             size_hint_x: None
             width: dp(100)
-            on_release: app.login()
+            on_release: app.on_login_button_click() 
+
+        MDTextButton:
+            text: "Cadastrar"
+            pos_hint: {"center_x": 0.5}
+            on_release: app.on_register_button_click()
 
         MDLabel:
             text: "Esqueceu sua senha?"
@@ -70,6 +70,9 @@ KV = '''
             size_hint_y: None
             height: self.texture_size[1]
 '''
+
+
+
 
 
 class LoginScreen(MDScreen):

@@ -1,3 +1,4 @@
+import requests
 from kivy.lang import Builder
 from kivymd.app import MDApp
 from kivymd.uix.screenmanager import MDScreenManager
@@ -7,7 +8,7 @@ from login import LoginScreen
 from gestor import MainScreen  # Importar telas
 from infoScreen import InfoScreen
 from info_user import UserInfoScreen
-
+from core.api_client import APIClient
 kv = '''
 MDScreenManager:
     LoginScreen:
@@ -15,8 +16,23 @@ MDScreenManager:
     InfoScreen:
     UserInfoScreen
 '''
+import httpx
+import asyncio
+
+
+async def login(username: str, password: str):
+    url = "http://127.0.0.1:8000/api/v1/usuarios/login"
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, data={"username": username, "password": password})
+
+        if response.status_code == 200:
+            return response.json()  # Retorna o token de acesso
+        else:
+            print(f"Erro: {response.json()}")
+            return None
 
 class MainApp(MDApp):
+    api = APIClient("http://127.0.0.1:8000")
     def build(self):
         try:
             Builder.load_string(kv)
@@ -35,7 +51,9 @@ class MainApp(MDApp):
     def show_info_screen(self, index, name):
 
         info_screen = self.root.get_screen('info_screen')
-        info_screen.ids.info_title.text = f"Pegar a chave da {name}"
+        info_screen.ids.info_title.text = f"{name}"
+        info_screen.update_title(name)  # Atualiza o título
+        info_screen.toggle_key_status(index + 1)
         #info_screen.ids.info_details.text = f"O Número : {index + 1}"
         self.root.current = 'info_screen'
 
@@ -65,16 +83,30 @@ class MainApp(MDApp):
         except Exception as e:
             self.show_error_popup("Erro ao voltar para a tela principal", str(e))
 
-    def login(self):
+    '''async def authenticator(self, username: str, password: str):
+        url = "http://127.0.0.1:8000/api/v1/usuarios/login"
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, data={"username": username, "password": password})
+
+            if response.status_code == 200:
+                return response.json()  # Retorna o token de acesso
+            else:
+                print(f"Erro: {response.json()}")
+                return None'''
+
+    async def login(self):
         try:
             email = self.manager.get_screen("login").ids.email.text
             senha = self.manager.get_screen("login").ids.senha.text
 
-            if email == "user" and senha == "123":
-                print("Login bem-sucedido!")
-                self.manager.current = "main"
+            token_info = await self.api.authenticator(email, senha)  # Chama a função correta
+
+            if token_info:
+                #print("Login bem-sucedido!")
+                self.manager.current = "main"  # Muda para a tela principal
             else:
-                print("Credenciais inválidas!")
+
+                self.show_error_popup("Erro", "Credenciais inválidas!")  # Exibe um popup de erro
         except Exception as e:
             self.show_error_popup("Erro ao tentar login", str(e))
 
@@ -83,6 +115,53 @@ class MainApp(MDApp):
         popup_content = Label(text=message)
         popup = Popup(title=title, content=popup_content, size_hint=(0.8, 0.4))
         popup.open()
+
+    def on_login_button_click(self):
+        asyncio.run(self.login())  # Chama a função de login
+
+
+    def on_register_button_click(self):
+        # Ação de cadastro
+        self.root.current = 'info_user'
+
+    def formatar_endereco(self, logradouro, bairro, numero, cidade, estado):
+        # Concatena os campos com uma vírgula e espaço entre eles, ignorando os campos vazios
+        endereco = ", ".join(filter(None, [logradouro, f"Nº {numero}", bairro, cidade, estado]))
+        return endereco
+    def save_user_info(self):
+        user_info = self.root.get_screen('info_user')
+        endereco_concatenado = self.formatar_endereco(
+            logradouro=user_info.ids.address.text,
+            bairro=user_info.ids.neighborhood.text,
+            numero=user_info.ids.house_number.text,
+            cidade=user_info.ids.city.text,
+            estado=user_info.ids.state.text
+        )
+        print(endereco_concatenado)
+        # Coleta os valores dos campos
+        user_data = {
+            "nome": user_info.ids.first_name.text,
+            "sobrenome":user_info.ids.second_name.text,
+            "email": user_info.ids.email.text,
+            "senha": user_info.ids.senha.text,
+            "telefone": user_info.ids.phone.text,
+            "endereco":endereco_concatenado,
+        }
+
+        # Validações podem ser adicionadas aqui, como confirmar a senha
+        if user_data["senha"] != user_info.ids.confirme_senha.text:
+            print("As senhas não coincidem.")
+            return
+
+        # Faz a requisição POST para o endpoint de registro
+        try:
+            response = requests.post("http://127.0.0.1:8000/api/v1/usuarios/register", json=user_data)
+            if response.status_code == 201:
+                print("Usuário cadastrado com sucesso!")
+            else:
+                print("Erro ao cadastrar usuário:", response.json().get("detail", "Erro desconhecido"))
+        except Exception as e:
+            print("Erro ao conectar-se com o servidor:", e)
 
 if __name__ == "__main__":
     MainApp().run()

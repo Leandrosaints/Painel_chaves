@@ -1,8 +1,10 @@
 from kivy.lang import Builder
+from kivy.properties import BooleanProperty
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 
 kv = """
+
 <UserInfoScreen>:
     ScrollView:
         MDBoxLayout:
@@ -10,13 +12,14 @@ kv = """
             padding: dp(20)
             spacing: dp(20)
             adaptive_height: True
-            MDIconButton:#button return para tela main
+            
+            MDIconButton:
                 icon: "arrow-left"
                 pos_hint: {"center_y": 0.5}
-                on_release: app.root.current = "main"  # Substitua "previous_screen" pelo ID da tela anterior
+                on_release: app.root.current = "main"
 
             MDLabel:
-                text: "Informações do Usuário"
+                text: "Cadastro" if not root.show_history else "Informações do Usuário"
                 font_style: "H5"
                 halign: "center"
                 theme_text_color: "Primary"
@@ -43,25 +46,42 @@ kv = """
                     height: self.texture_size[1]
 
                 MDTextField:
-                    id: full_name
-                    hint_text: "Nome Completo"
-                    helper_text: "Digite o nome completo"
+                    id: first_name
+                    hint_text: "Primeiro nome"
+                    helper_text: "Primeiro nome"
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
-
+                MDTextField:
+                    id: second_name
+                    hint_text: "Sobrenome"
+                    helper_text: "Sobrenome"
+                    helper_text_mode: "on_focus"
+                    size_hint_x: 1
                 MDTextField:
                     id: email
                     hint_text: "Email"
                     helper_text: "Digite o email"
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
-
                 MDTextField:
                     id: phone
                     hint_text: "Telefone"
                     helper_text: "Digite o telefone"
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
+                MDTextField:
+                    id: senha
+                    hint_text: "Senha"
+                    helper_text: "Digite uma senhar"
+                    helper_text_mode: "on_focus"
+                    size_hint_x: 1
+                MDTextField:
+                    id: confirme_senha
+                    hint_text: "Confirme a Senha"
+                    helper_text: "Confirme a Senha"
+                    helper_text_mode: "on_focus"
+                    size_hint_x: 1
+                
 
             # Seção: Endereço
             MDCard:
@@ -127,6 +147,13 @@ kv = """
                 pos_hint: {"center_x": 0.5}
                 ripple_behavior: True
                 adaptive_height: True
+                opacity: 1 if root.show_history else 0
+                canvas.before:
+                    Color:
+                        rgba: 1, 1, 1, 1 if root.show_history else 0  # Controla a visibilidade
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
 
                 MDLabel:
                     text: "Histórico de Salas"
@@ -141,12 +168,11 @@ kv = """
                     spacing: dp(10)
                     adaptive_height: True
 
-                    # Exemplo de item de histórico
                     MDBoxLayout:
                         orientation: "vertical"
                         spacing: dp(5)
                         adaptive_height: True
-                        md_bg_color: 0.95, 0.95, 0.95, 1  # Cor de fundo leve para cada item
+                        md_bg_color: 0.95, 0.95, 0.95, 1
 
                         MDLabel:
                             text: "Sala: 101"
@@ -172,47 +198,17 @@ kv = """
                             size_hint_y: None
                             height: self.texture_size[1]
 
-                    # Outro exemplo de item de histórico
-                    MDBoxLayout:
-                        orientation: "vertical"
-                        spacing: dp(5)
-                        adaptive_height: True
-                        md_bg_color: 0.95, 0.95, 0.95, 1
-
-                        MDLabel:
-                            text: "Sala: 202"
-                            font_style: "Body1"
-                            theme_text_color: "Primary"
-                            halign: "left"
-                            size_hint_y: None
-                            height: self.texture_size[1]
-
-                        MDLabel:
-                            text: "Data e Hora de Entrada: 02/10/2024 14:00"
-                            font_style: "Caption"
-                            theme_text_color: "Secondary"
-                            halign: "left"
-                            size_hint_y: None
-                            height: self.texture_size[1]
-
-                        MDLabel:
-                            text: "Hora Finalizada: 02/10/2024 16:00"
-                            font_style: "Caption"
-                            theme_text_color: "Secondary"
-                            halign: "left"
-                            size_hint_y: None
-                            height: self.texture_size[1]
-
             MDRaisedButton:
-                text: "Salvar Informações"
+                text: "Salvar Informações" if root.show_history else "Cadastrar"
                 pos_hint: {"center_x": 0.5}
                 size_hint: None, None
                 size: dp(200), dp(48)
                 on_release: app.save_user_info()
 """
 
+
 Builder.load_string(kv)
 
 
 class UserInfoScreen(MDScreen):
-    pass
+    show_history = BooleanProperty(False)  # Define se o histórico de salas será mostrado

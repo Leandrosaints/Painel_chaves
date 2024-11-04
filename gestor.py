@@ -5,7 +5,8 @@ from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivy.core.window import Window
 from kivy.metrics import dp
-from kivymd.uix.button import MDIconButton
+from kivymd.uix.button import MDIconButton, MDFlatButton
+
 from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
@@ -26,7 +27,7 @@ kv = """
             MDBoxLayout:
                 orientation: 'horizontal'
                 spacing: dp(10)  # Espaçamento entre os elementos
-                padding: [dp(10), 0]  # Ajuste de padding no eixo X para centralizar
+                padding: [dp(2), 0]  # Ajuste de padding no eixo X para centralizar
 
                 # Botão de menu à esquerda
                 MDIconButton:
@@ -73,7 +74,7 @@ kv = """
                             size_hint_y: None
                             height: self.minimum_height
                             pos_hint: {"center_x": 0.5}
-
+                            
             # Menu de navegação
             MDNavigationDrawer:
                 id: nav_drawer
@@ -103,10 +104,18 @@ kv = """
 
 Builder.load_string(kv)
 
-class RotatableButton(MDIconButton):
-    rotating = False
-    angle = 0
-
+class RotatableButton(MDFlatButton):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.size_hint = (None, None)  # Definindo tamanho fixo
+        #self.size = (dp(200), dp(200))  # Ajuste para o tamanho desejado
+        self.pos_hint=({'center_x': 0.5, 'center_y': 0.5})
+        self.style= "tonal"
+        self.theme_font_size= "Custom"
+        #self.font_size: "48sp"
+        #self.radius: [self.height / 2, ]
+        #self.size_hint: None, None
+        self.size=( "60dp", "60dp")
     def toggle_rotation(self, *args):
         if self.rotating:
             self.stop_rotation()
@@ -131,9 +140,11 @@ class MainScreen(MDScreen):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        Clock.schedule_once(self.initialize_container)
+        #Clock.schedule_once(self.initialize_container, 0.1)  # Delay reduzido
 
-    def initialize_container(self, *args):
+    def on_kv_post(self, base_widget):
+        self.initialize_container()  # Chamada aqui
+    def initialize_container(self):
         self.container = self.ids.container
         self.create_image_buttons()
         Window.bind(on_resize=self.update_grid_columns)
@@ -180,7 +191,7 @@ class MainScreen(MDScreen):
             number_label.bind(size=number_label.setter('text_size'))
             button_layout.add_widget(number_label)
 
-            button = RotatableButton(id=button_id, size_hint=(None, None), pos_hint=({'center_x': 0.5, 'center_y': 0.5}), size=(dp(80), dp(80)))
+            button = RotatableButton(id=button_id)
             button.bind(on_release=lambda btn, index=i, name=nomes[i]: self.show_info_screen(index, name))
             button_image = Image(source=image_path, size=(dp(80), dp(80)))
             button.add_widget(button_image)
