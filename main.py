@@ -33,6 +33,7 @@ async def login(username: str, password: str):
 
 class MainApp(MDApp):
     api = APIClient("http://127.0.0.1:8000")
+    user_token = None  # Variável para armazenar o token do usuário
     def build(self):
         try:
             Builder.load_string(kv)
@@ -52,6 +53,7 @@ class MainApp(MDApp):
 
         info_screen = self.root.get_screen('info_screen')
         info_screen.ids.info_title.text = f"{name}"
+
         info_screen.update_title(name)  # Atualiza o título
         info_screen.toggle_key_status(index + 1)
         #info_screen.ids.info_details.text = f"O Número : {index + 1}"
@@ -62,8 +64,11 @@ class MainApp(MDApp):
             # Obtém a tela de informações do usuário
             user_info_screen = self.root.get_screen('info_user')
 
+            user_info_screen.toggle_show_history()
+            #user_info_screen.root.toggle_show_history()
             # Preenche os campos de texto com os dados do usuário
-            user_info_screen.ids.full_name.text = user_data.get("full_name", "Não informado")
+            user_info_screen.ids.first_name.text = user_data.get("full_name", "Não informado")
+            user_info_screen.ids.second_name.text = user_data.get("second_name", "Não informado")
             user_info_screen.ids.email.text = user_data.get("email", "Não informado")
             user_info_screen.ids.phone.text = user_data.get("phone", "Não informado")
             user_info_screen.ids.address.text = user_data.get("address", "Não informado")
@@ -77,11 +82,22 @@ class MainApp(MDApp):
         except Exception as e:
             # Mostra um popup em caso de erro
             self.show_error_popup("Erro ao exibir informações do usuário", str(e))
-    def go_back_to_main_screen(self):
-        try:
-            self.root.current = 'main'
-        except Exception as e:
-            self.show_error_popup("Erro ao voltar para a tela principal", str(e))
+
+
+
+    def is_logged_in(self):
+        # Verifica se o usuário está logado
+        return self.user_token is not None
+
+    def try_go_back_to_main(self):
+        # Função para verificar o login e mudar a tela
+        if self.is_logged_in():
+
+            self.root.current = "main"
+
+        else:
+            self.root.current = 'login'
+            #print("Usuário não está logado. Não pode retornar para a tela principal.")
 
     '''async def authenticator(self, username: str, password: str):
         url = "http://127.0.0.1:8000/api/v1/usuarios/login"
@@ -96,19 +112,24 @@ class MainApp(MDApp):
 
     async def login(self):
         try:
+
             email = self.manager.get_screen("login").ids.email.text
             senha = self.manager.get_screen("login").ids.senha.text
 
             token_info = await self.api.authenticator(email, senha)  # Chama a função correta
 
             if token_info:
+
+                self.user_token = token_info
                 #print("Login bem-sucedido!")
                 self.manager.current = "main"  # Muda para a tela principal
+
             else:
 
                 self.show_error_popup("Erro", "Credenciais inválidas!")  # Exibe um popup de erro
         except Exception as e:
             self.show_error_popup("Erro ao tentar login", str(e))
+
 
     def show_error_popup(self, title, message):
         # Cria e exibe um popup de erro
@@ -124,10 +145,15 @@ class MainApp(MDApp):
         # Ação de cadastro
         self.root.current = 'info_user'
 
+
+    #concatena o endereço para ficar em apenas um campo no banco de dados
     def formatar_endereco(self, logradouro, bairro, numero, cidade, estado):
         # Concatena os campos com uma vírgula e espaço entre eles, ignorando os campos vazios
         endereco = ", ".join(filter(None, [logradouro, f"Nº {numero}", bairro, cidade, estado]))
         return endereco
+
+
+    #metodo responsavel por inserir os dados do cadastro do usuario
     def save_user_info(self):
         user_info = self.root.get_screen('info_user')
         endereco_concatenado = self.formatar_endereco(
@@ -162,6 +188,8 @@ class MainApp(MDApp):
                 print("Erro ao cadastrar usuário:", response.json().get("detail", "Erro desconhecido"))
         except Exception as e:
             print("Erro ao conectar-se com o servidor:", e)
+
+
 
 if __name__ == "__main__":
     MainApp().run()

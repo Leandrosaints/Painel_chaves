@@ -4,19 +4,20 @@ from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 
 kv = """
-
 <UserInfoScreen>:
+    show_history: False  # Propriedade que controla a visibilidade do histórico
+
     ScrollView:
         MDBoxLayout:
             orientation: "vertical"
             padding: dp(20)
             spacing: dp(20)
             adaptive_height: True
-            
+
             MDIconButton:
                 icon: "arrow-left"
                 pos_hint: {"center_y": 0.5}
-                on_release: app.root.current = "main"
+                on_release: app.try_go_back_to_main()
 
             MDLabel:
                 text: "Cadastro" if not root.show_history else "Informações do Usuário"
@@ -72,7 +73,7 @@ kv = """
                 MDTextField:
                     id: senha
                     hint_text: "Senha"
-                    helper_text: "Digite uma senhar"
+                    helper_text: "Digite uma senha"
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
                 MDTextField:
@@ -81,7 +82,6 @@ kv = """
                     helper_text: "Confirme a Senha"
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
-                
 
             # Seção: Endereço
             MDCard:
@@ -139,21 +139,16 @@ kv = """
 
             # Seção: Histórico de Salas Usadas
             MDCard:
+                id: history_card
                 orientation: "vertical"
                 size_hint: 0.9, None
-                height: self.minimum_height
+                height: self.minimum_height if root.show_history else 0  # Altura controlada pela visibilidade
                 padding: dp(20)
                 spacing: dp(15)
                 pos_hint: {"center_x": 0.5}
                 ripple_behavior: True
                 adaptive_height: True
-                opacity: 1 if root.show_history else 0
-                canvas.before:
-                    Color:
-                        rgba: 1, 1, 1, 1 if root.show_history else 0  # Controla a visibilidade
-                    Rectangle:
-                        pos: self.pos
-                        size: self.size
+                opacity: 1 if root.show_history else 0  # Opacidade controlada pela visibilidade
 
                 MDLabel:
                     text: "Histórico de Salas"
@@ -199,16 +194,24 @@ kv = """
                             height: self.texture_size[1]
 
             MDRaisedButton:
-                text: "Salvar Informações" if root.show_history else "Cadastrar"
+                text: "Salvar Informações" 
                 pos_hint: {"center_x": 0.5}
                 size_hint: None, None
                 size: dp(200), dp(48)
                 on_release: app.save_user_info()
+
+           
 """
 
-
 Builder.load_string(kv)
-
-
 class UserInfoScreen(MDScreen):
-    show_history = BooleanProperty(False)  # Define se o histórico de salas será mostrado
+
+    show_history = BooleanProperty(False)
+
+    def toggle_show_history(self):
+        self.show_history = not self.show_history  # Alterna a visibilidade
+        self.ids.history_card.opacity = 1 if self.show_history else 0  # Atualiza a opacidade
+        self.ids.history_card.size_hint_y = None if self.show_history else 0  # Controla a altura
+        self.ids.history_card.height = self.ids.history_card.minimum_height if self.show_history else 0  # Ajusta a altura
+
+
