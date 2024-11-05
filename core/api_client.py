@@ -10,11 +10,26 @@ class APIClient:
             response = await client.post(url, data={"username": username, "password": password})
 
             if response.status_code == 200:
-                return response.json()  # Retorna o token de acesso
+                # Agora, sem usar "await", pois `response.json()` já retorna um dicionário.
+                data = response.json()
+                return {
+                    "token": data.get("acess_token"),
+                    "user_id": data.get("user_id")
+                }
             else:
-                print(f"Erro: {response.json()}")
                 return None
 
+    async def fetch_user(self, user_id: int):
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{self.base_url}/api/v1/usuarios/{user_id}")
+
+            if response.status_code == 200:
+                user_data = response.json()
+                return user_data
+            elif response.status_code == 404:
+                print("Usuário não encontrado!")
+            else:
+                print("Erro ao buscar usuário:", response.text)
     async def get_data(self, endpoint):
         try:
             async with httpx.AsyncClient() as client:

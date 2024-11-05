@@ -1,4 +1,7 @@
+import re
+
 import requests
+from kivy.clock import Clock
 from kivy.lang import Builder
 from kivymd.app import MDApp
 from kivymd.uix.screenmanager import MDScreenManager
@@ -34,6 +37,7 @@ async def login(username: str, password: str):
 class MainApp(MDApp):
     api = APIClient("http://127.0.0.1:8000")
     user_token = None  # Variável para armazenar o token do usuário
+    user_id = None
     def build(self):
         try:
             Builder.load_string(kv)
@@ -59,39 +63,50 @@ class MainApp(MDApp):
         #info_screen.ids.info_details.text = f"O Número : {index + 1}"
         self.root.current = 'info_screen'
 
-    def show_user_info_screen(self, user_data):
+    async def show_user_info_screen(self):
         try:
-            # Obtém a tela de informações do usuário
             user_info_screen = self.root.get_screen('info_user')
+            user_info_screen.toggle_show_history()  # Exibe a seção de histórico de salas
 
-            user_info_screen.toggle_show_history()
-            #user_info_screen.root.toggle_show_history()
-            # Preenche os campos de texto com os dados do usuário
-            user_info_screen.ids.first_name.text = user_data.get("full_name", "Não informado")
-            user_info_screen.ids.second_name.text = user_data.get("second_name", "Não informado")
-            user_info_screen.ids.email.text = user_data.get("email", "Não informado")
-            user_info_screen.ids.phone.text = user_data.get("phone", "Não informado")
-            user_info_screen.ids.address.text = user_data.get("address", "Não informado")
-            user_info_screen.ids.neighborhood.text = user_data.get("neighborhood", "Não informado")
-            user_info_screen.ids.house_number.text = user_data.get("house_number", "Não informado")
-            user_info_screen.ids.city.text = user_data.get("city", "Não informado")
-            user_info_screen.ids.state.text = user_data.get("state", "Não informado")
+            user_id = self.user_id
+            dados = await self.api.fetch_user(user_id)
 
-            # Muda a tela atual para `user_info_screen`
-            self.root.current = 'info_user'
+
+            if dados:
+                campos = {
+                    "nome": user_info_screen.ids.first_name,
+                    "sobrenome": user_info_screen.ids.second_name,
+                    "email": user_info_screen.ids.email,
+                    "telefone": user_info_screen.ids.phone,
+
+                }
+
+                for chave, campo in campos.items():
+                    campo.text = dados.get(chave, "Não informado")
+
+                endereco = dados.get("endereco", "Não informado")
+                logradouro, numero, bairro, cidade, estado = self.desconcatenar_endereco(endereco)
+                user_info_screen.ids.address.text = logradouro if logradouro else "Nao informado"
+                user_info_screen.ids.neighborhood.text = bairro if bairro else "Não informado"
+                user_info_screen.ids.house_number.text = numero if numero else "Não informado"
+                user_info_screen.ids.city.text = cidade if cidade else "Não informado"
+                user_info_screen.ids.state.text = estado if estado else "Não informado"
+
+                self.root.current = 'info_user'
+            else:
+                print("Usuário não encontrado ou sem dados!")
+
         except Exception as e:
-            # Mostra um popup em caso de erro
-            self.show_error_popup("Erro ao exibir informações do usuário", str(e))
+            print("Ocorreu um erro:", str(e))
 
 
 
-    def is_logged_in(self):
-        # Verifica se o usuário está logado
-        return self.user_token is not None
+
 
     def try_go_back_to_main(self):
         # Função para verificar o login e mudar a tela
-        if self.is_logged_in():
+        if self.user_token:
+
 
             self.root.current = "main"
 
@@ -112,16 +127,17 @@ class MainApp(MDApp):
 
     async def login(self):
         try:
-
             email = self.manager.get_screen("login").ids.email.text
             senha = self.manager.get_screen("login").ids.senha.text
 
-            token_info = await self.api.authenticator(email, senha)  # Chama a função correta
+            token_info = await self.api.authenticator(email, senha)
 
             if token_info:
+                # Armazena o token e o ID do usuário separadamente
+                self.user_token = token_info["token"]
+                self.user_id = token_info["user_id"]  # Armazena o ID do usuário
+                #self.user_id = token_info["user_id"]  # Armazena o ID do usuário
 
-                self.user_token = token_info
-                #print("Login bem-sucedido!")
                 self.manager.current = "main"  # Muda para a tela principal
 
             else:
@@ -140,6 +156,12 @@ class MainApp(MDApp):
     def on_login_button_click(self):
         asyncio.run(self.login())  # Chama a função de login
 
+    def on_user_dados(self):
+        try:
+            # Executa a função assíncrona diretamente no loop de eventos
+            asyncio.run(self.show_user_info_screen())
+        except Exception as e:
+            print("Erro ao tentar mostrar informações do usuário:", str(e))
 
     def on_register_button_click(self):
         # Ação de cadastro
@@ -152,10 +174,36 @@ class MainApp(MDApp):
         endereco = ", ".join(filter(None, [logradouro, f"Nº {numero}", bairro, cidade, estado]))
         return endereco
 
+    def desconcatenar_endereco(self, endereco: str):
+        partes = [parte.strip() for parte in endereco.split(",")]
+        logradouro = None
+        numero = None
+        bairro = None
+        cidade = None
+        estado = None
 
-    #metodo responsavel por inserir os dados do cadastro do usuario
+        if len(partes) > 0:
+            logradouro = partes[0]
+        if len(partes) > 1:
+            if "Nº" in partes[1]:
+                numero = re.search(r'Nº (\d+)', partes[1])
+                numero = numero.group(1) if numero else None
+                bairro = partes[2] if len(partes) > 2 else None
+            else:
+                numero = partes[1]
+                bairro = partes[2] if len(partes) > 2 else None
+
+        if len(partes) > 3:
+            cidade = partes[-2]
+            estado = partes[-1]
+
+        return logradouro, numero, bairro, cidade, estado
+
+    # Método responsável por inserir os dados do cadastro do usuário
     def save_user_info(self):
         user_info = self.root.get_screen('info_user')
+
+        # Formata o endereço
         endereco_concatenado = self.formatar_endereco(
             logradouro=user_info.ids.address.text,
             bairro=user_info.ids.neighborhood.text,
@@ -163,15 +211,17 @@ class MainApp(MDApp):
             cidade=user_info.ids.city.text,
             estado=user_info.ids.state.text
         )
-        print(endereco_concatenado)
+
+
+
         # Coleta os valores dos campos
         user_data = {
             "nome": user_info.ids.first_name.text,
-            "sobrenome":user_info.ids.second_name.text,
+            "sobrenome": user_info.ids.second_name.text,
             "email": user_info.ids.email.text,
             "senha": user_info.ids.senha.text,
             "telefone": user_info.ids.phone.text,
-            "endereco":endereco_concatenado,
+            "endereco": endereco_concatenado,
         }
 
         # Validações podem ser adicionadas aqui, como confirmar a senha
