@@ -210,5 +210,5 @@ class MainScreen(MDScreen):
 
     def show_info_screen(self, index, name):
         app = MDApp.get_running_app()
-        app.show_info_screen(index, name)
+        app.on_click_info_salas(index, name)
 

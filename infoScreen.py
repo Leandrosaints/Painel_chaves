@@ -61,6 +61,7 @@ kv = """
                 spacing: dp(15)
 
                 MDLabel:
+                    id: name_id
                     text: "Nome do Responsável: João da Silva"
                     font_style: "Subtitle1"
                     theme_text_color: "Primary"
@@ -71,11 +72,13 @@ kv = """
                     theme_text_color: "Primary"
 
                 MDLabel:
+                    id: email_id
                     text: "Email: joao.silva@escola.com"
                     font_style: "Subtitle1"
                     theme_text_color: "Primary"
 
                 MDLabel:
+                    id: phone_id
                     text: "Telefone: (11) 98765-4321"
                     font_style: "Subtitle1"
                     theme_text_color: "Primary"

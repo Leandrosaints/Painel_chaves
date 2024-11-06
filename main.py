@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 
 import requests
 from kivy.clock import Clock
@@ -53,16 +54,33 @@ class MainApp(MDApp):
         except Exception as e:
             self.show_error_popup("Erro ao construir a interface", str(e))
 
-    def show_info_screen(self, index, name):
+    async def show_info_screen(self, index, name):
 
         info_screen = self.root.get_screen('info_screen')
         info_screen.ids.info_title.text = f"{name}"
-
         info_screen.update_title(name)  # Atualiza o título
         info_screen.toggle_key_status(index + 1)
+
+        user_id = self.user_id
+        dados = await self.api.fetch_user(user_id)
+
+        if dados:
+            campos = {
+                "nome": info_screen.ids.name_id,
+                "email": info_screen.ids.email_id,
+                "telefone": info_screen.ids.phone_id,
+
+            }
+
+            for chave, campo in campos.items():
+                campo.text = dados.get(chave, "Não informado")
+
+
+
         #info_screen.ids.info_details.text = f"O Número : {index + 1}"
         self.root.current = 'info_screen'
-
+    def on_click_info_salas(self, index, name):
+        asyncio.run(self.show_info_screen(index, name))  # Chama a função de login
     async def show_user_info_screen(self):
         try:
             user_info_screen = self.root.get_screen('info_user')
@@ -231,14 +249,25 @@ class MainApp(MDApp):
 
         # Faz a requisição POST para o endpoint de registro
         try:
-            response = requests.post("http://127.0.0.1:8000/api/v1/usuarios/register", json=user_data)
-            if response.status_code == 201:
-                print("Usuário cadastrado com sucesso!")
-            else:
-                print("Erro ao cadastrar usuário:", response.json().get("detail", "Erro desconhecido"))
+            #response = requests.post("http://127.0.0.1:8000/api/v1/usuarios/register", json=user_data)
+            #if response.status_code == 201:
+                #print("Usuário cadastrado com sucesso!")
+            asyncio.run(self.api.register_user_now(user_data))
+            self.show_error_popup('Sucesso', "dados inseridos com sucesso!")
+                #print("Erro ao cadastrar usuário:", response.json().get("detail", "Erro desconhecido"))
         except Exception as e:
             print("Erro ao conectar-se com o servidor:", e)
+    async def register_historico(self):
+        resultado = await self.api.enviar_historico(
+            sala_id=1,
+            usuario_id=self.user_id,
+            data_hora_retirada=datetime.now(),
+            data_hora_devolucao=datetime.now()  # Pode ser None se não for devolução ainda
+        )
 
+        if resultado:
+            print("Histórico de acesso registrado com sucesso!")
+            print(f"Dados retornados: {resultado}")
 
 
 if __name__ == "__main__":

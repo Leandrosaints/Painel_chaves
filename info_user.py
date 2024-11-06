@@ -73,6 +73,7 @@ kv = """
                 MDTextField:
                     id: senha
                     hint_text: "Senha"
+                    password: True
                     helper_text: "Digite uma senha"
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
@@ -80,6 +81,7 @@ kv = """
                     id: confirme_senha
                     hint_text: "Confirme a Senha"
                     helper_text: "Confirme a Senha"
+                    password: True
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
 
