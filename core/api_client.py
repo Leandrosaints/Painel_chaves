@@ -63,20 +63,16 @@ class APIClient:
 
     ########### requisicoes de historico de salas #########
 
-    async def enviar_historico(self, sala_id: int, usuario_id: int, data_hora_retirada: datetime, data_hora_devolucao: Optional[datetime] = None) -> Optional[dict]:
+    async def enviar_historico(self, data_historico: dict) -> Optional[dict]:
         url = f"{self.base_url}/api/v1/historicos/register"
 
-        # Dados para o JSON
-        historico_data = {
-            "sala_id": sala_id,
-            "usuario_id": usuario_id,
-            "data_hora_retirada": data_hora_retirada.isoformat(),
-            "data_hora_devolucao": data_hora_devolucao.isoformat() if data_hora_devolucao else None,
-        }
-
-        # Enviando a requisição POST com JSON
+        # Enviar os dados recebidos em formato JSON
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, json=historico_data)
+            response = await client.post(url, json=data_historico)
 
-            # Verificando a resposta
-            return response.json() if response.status_code == 201 else None
+            # Verificar a resposta e retornar o resultado
+            if response.status_code == 201:
+                return response.json()  # Retorna o JSON com o histórico criado
+            else:
+                print(f"Erro ao enviar histórico: {response.status_code}, {response.text}")
+                return None  # Caso de erro, retorna None

@@ -59,6 +59,12 @@ kv = """
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
                 MDTextField:
+                    id: funcao
+                    hint_text: "Função"
+                    helper_text: "Sua Funçao"
+                    helper_text_mode: "on_focus"
+                    size_hint_x: 1
+                MDTextField:
                     id: email
                     hint_text: "Email"
                     helper_text: "Digite o email"

@@ -7,6 +7,7 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivy.animation import Animation
 from kivy.uix.image import Image
 from kivy.metrics import dp
+from kivymd.app import MDApp
 
 kv = """
 <InfoScreen>:
@@ -67,6 +68,7 @@ kv = """
                     theme_text_color: "Primary"
 
                 MDLabel:
+                    id:funcao_id
                     text: "Função: Professor de Matemática"
                     font_style: "Subtitle1"
                     theme_text_color: "Primary"
@@ -132,7 +134,7 @@ kv = """
                         text: "Pegar"
                         md_bg_color: app.theme_cls.primary_color
                         pos_hint: {"center_x": 0.5}
-                        on_release: root.toggle_key_status(root.current_key_id)
+                        on_release: root.get_historico(3)
 
                     MDRaisedButton:
                         id: devolver_button
@@ -159,6 +161,10 @@ class InfoScreen(MDScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.loading_dialog = None  # Adicione isso para inicializar a variável de diálogo
+    def get_historico(self, index):
+        app = MDApp.get_running_app()
+        app.on_click_get_historico(index)
+
 
     def update_title(self, name):
         self.ids.info_title.text = f"{name}"

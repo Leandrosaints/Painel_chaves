@@ -54,6 +54,7 @@ class MainApp(MDApp):
         except Exception as e:
             self.show_error_popup("Erro ao construir a interface", str(e))
 
+
     async def show_info_screen(self, index, name):
 
         info_screen = self.root.get_screen('info_screen')
@@ -67,6 +68,7 @@ class MainApp(MDApp):
         if dados:
             campos = {
                 "nome": info_screen.ids.name_id,
+                "funcao":info_screen.ids.funcao_id,
                 "email": info_screen.ids.email_id,
                 "telefone": info_screen.ids.phone_id,
 
@@ -79,8 +81,12 @@ class MainApp(MDApp):
 
         #info_screen.ids.info_details.text = f"O Número : {index + 1}"
         self.root.current = 'info_screen'
+
+
     def on_click_info_salas(self, index, name):
         asyncio.run(self.show_info_screen(index, name))  # Chama a função de login
+
+
     async def show_user_info_screen(self):
         try:
             user_info_screen = self.root.get_screen('info_user')
@@ -94,6 +100,7 @@ class MainApp(MDApp):
                 campos = {
                     "nome": user_info_screen.ids.first_name,
                     "sobrenome": user_info_screen.ids.second_name,
+                    "funcao":user_info_screen.ids.funcao,
                     "email": user_info_screen.ids.email,
                     "telefone": user_info_screen.ids.phone,
 
@@ -116,9 +123,6 @@ class MainApp(MDApp):
 
         except Exception as e:
             print("Ocorreu um erro:", str(e))
-
-
-
 
 
     def try_go_back_to_main(self):
@@ -236,6 +240,7 @@ class MainApp(MDApp):
         user_data = {
             "nome": user_info.ids.first_name.text,
             "sobrenome": user_info.ids.second_name.text,
+            "funcao": user_info.ids.funcao.text,
             "email": user_info.ids.email.text,
             "senha": user_info.ids.senha.text,
             "telefone": user_info.ids.phone.text,
@@ -257,18 +262,33 @@ class MainApp(MDApp):
                 #print("Erro ao cadastrar usuário:", response.json().get("detail", "Erro desconhecido"))
         except Exception as e:
             print("Erro ao conectar-se com o servidor:", e)
-    async def register_historico(self):
-        resultado = await self.api.enviar_historico(
-            sala_id=1,
-            usuario_id=self.user_id,
-            data_hora_retirada=datetime.now(),
-            data_hora_devolucao=datetime.now()  # Pode ser None se não for devolução ainda
-        )
 
-        if resultado:
+    async def register_historico(self, sala_id: int):
+        # Criação do dicionário com os dados a serem enviados
+        dados_historico = {
+            "sala_id": sala_id,
+            "usuario_id": self.user_id,
+            "data_hora_retirada": datetime.now().isoformat(),  # ISO format para garantir o formato correto
+            "data_hora_devolucao": datetime.now().isoformat()  # ISO format
+        }
+
+        # Enviar o histórico usando a função enviar_historico
+        resposta = await self.api.enviar_historico(dados_historico)
+
+        # Verificar a resposta
+        if resposta:
             print("Histórico de acesso registrado com sucesso!")
-            print(f"Dados retornados: {resultado}")
-
+            print(f"Dados retornados: {resposta}")
+        else:
+            print("Erro ao registrar o histórico de acesso.")
+            # Imprimir o conteúdo do erro para ajudar a entender o problema
+            print(f"Erro detalhado: {resposta}")
+    def on_click_get_historico(self, sala_id):
+        try:
+            # Executa a função assíncrona diretamente no loop de eventos
+            asyncio.run(self.register_historico(sala_id))
+        except Exception as e:
+            print("erro ao tentar enviar dados para o historico de chaves:", str(e))
 
 if __name__ == "__main__":
     MainApp().run()
