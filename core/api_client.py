@@ -106,3 +106,56 @@ class APIClient:
                 print(f"Histórico com ID {user_historico_id} não encontrado!")
             else:
                 print(f"Erro ao buscar histórico: {response.text}")
+
+    async def update_usuario(self, user_id: int, user_data: dict):
+        # Define a URL com o ID do usuário a ser atualizado
+        url = f"{self.base_url}/api/v1/usuarios/{user_id}"
+        async with httpx.AsyncClient() as client:
+            # Envia a requisição PUT com os dados do usuário
+            response = await client.patch(url, json=user_data)
+            # Verifica o status da resposta
+            if response.status_code == 202:
+                # Retorna os dados atualizados
+                return response.json()
+            elif response.status_code == 404:
+                # Lida com caso de usuário não encontrado
+                print("Usuário não encontrado.")
+                return None
+            else:
+                # Lida com outros possíveis erros
+                print(f"Erro ao atualizar usuário: {response.status_code}")
+                return None
+
+    async def update_password(self, email: str, new_password: str):
+        # Define a URL com o endpoint correto
+        url = f"{self.base_url}/api/v1/usuarios/reset-password"
+
+        # Dados a serem enviados no corpo da requisição
+        user_data = {
+            "email": email,
+            "senha": new_password  # Certifique-se de que o campo é "senha" no lado do servidor
+        }
+
+        # Envia a requisição POST com os dados de redefinição de senha
+        async with httpx.AsyncClient() as client:
+            response = await client.patch(url, json=user_data)
+
+            # Verifica o status da resposta
+            if response.status_code == 200:
+                # Retorna a resposta com a confirmação de sucesso
+                return response.json()
+            elif response.status_code == 404:
+                print("Usuário não encontrado.")
+                return None
+            elif response.status_code == 400:
+                print("Dados inválidos. Verifique o email ou a senha.")
+                return None
+            elif response.status_code == 422:
+                print("Erro 422: Dados inválidos, verifique os requisitos da API.")
+                print(f"Detalhes do erro: {response.json()}")  # Exibe detalhes do erro retornado pela API
+                return None
+            else:
+                print(f"Erro ao redefinir senha: {response.status_code}")
+                return None
+
+

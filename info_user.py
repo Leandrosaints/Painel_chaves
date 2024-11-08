@@ -5,7 +5,7 @@ from kivymd.uix.screen import MDScreen
 
 kv = """
 <UserInfoScreen>:
-    show_history: False  # Propriedade que controla a visibilidade do histórico
+    show_history: False  # Propriedade que controla a visibilidade do histórico e do botão de atualização
 
     ScrollView:
         MDBoxLayout:
@@ -151,12 +151,13 @@ kv = """
                 orientation: "vertical"
                 size_hint: 0.9, None
                 height: self.minimum_height if root.show_history else 0
-                padding: dp(20)
+                padding: dp(50)
                 spacing: dp(15)
                 pos_hint: {"center_x": 0.5}
                 ripple_behavior: True
                 adaptive_height: True
                 opacity: 1 if root.show_history else 0
+                # O tamanho do histórico é controlado via a lógica de show_history
             
                 MDLabel:
                     text: "Histórico de Salas"
@@ -168,7 +169,7 @@ kv = """
             
                 ScrollView:
                     size_hint_y: None
-                    height: dp(300)
+                    
             
                     MDBoxLayout:
                         id: history_layout
@@ -176,25 +177,43 @@ kv = """
                         spacing: dp(10)
                         adaptive_height: True
 
+            # Botões de Ação
             MDRaisedButton:
-                text: "Salvar Informações" 
+                text: "Salvar Informações"
                 pos_hint: {"center_x": 0.5}
                 size_hint: None, None
                 size: dp(200), dp(48)
                 on_release: app.save_user_info()
+                opacity: 1 if not root.show_history else 0  # Mostra somente no modo cadastro
+                disabled: root.show_history  # Desabilita no modo logado
 
-           
+            MDRaisedButton:
+                text: "Atualizar Informações"
+                pos_hint: {"center_x": 0.5}
+                size_hint: None, None
+                size: dp(200), dp(48)
+                on_release: app.update_user_info()
+                md_bg_color: app.theme_cls.primary_color  # Cor padrão
+                text_color: 1, 1, 1, 1
+                opacity: 1 if root.show_history else 0  # Mostra somente no modo logado
+                disabled: not root.show_history  # Desabilita no modo cadastro
+                on_release: app.update_user_info()
 """
 
 Builder.load_string(kv)
-class UserInfoScreen(MDScreen):
 
+class UserInfoScreen(MDScreen):
     show_history = BooleanProperty(False)
 
     def toggle_show_history(self):
-        self.show_history = not self.show_history  # Alterna a visibilidade
-        self.ids.history_card.opacity = 1 if self.show_history else 0  # Atualiza a opacidade
-        self.ids.history_card.size_hint_y = None if self.show_history else 0  # Controla a altura
-        self.ids.history_card.height = self.ids.history_card.minimum_height if self.show_history else 0  # Ajusta a altura
+        self.show_history = not self.show_history
 
-
+        # Ajusta a visibilidade do cartão de histórico
+        if self.show_history:
+            self.ids.history_card.opacity = 1
+            self.ids.history_card.size_hint_y = None  # Faz o card ocupar o espaço necessário
+            self.ids.history_card.height = self.ids.history_card.minimum_height  # Altura dinâmica
+        else:
+            self.ids.history_card.opacity = 0
+            self.ids.history_card.size_hint_y = 0  # Não ocupa espaço no layout
+            self.ids.history_card.height = 0  # Sem altura quando invisível

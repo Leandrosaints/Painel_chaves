@@ -60,15 +60,16 @@ KV = '''
         MDTextButton:
             text: "Cadastrar"
             pos_hint: {"center_x": 0.5}
-            on_release: app.on_register_button_click()
+            on_release: app.root.current = 'info_user'
 
-        MDLabel:
+        MDTextButton:
             text: "Esqueceu sua senha?"
             halign: "center"
             theme_text_color: "Custom"
             text_color: app.theme_cls.primary_color
             size_hint_y: None
             height: self.texture_size[1]
+            on_release: app.root.current = 'reset_senha'
 '''
 
 
