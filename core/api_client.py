@@ -76,3 +76,33 @@ class APIClient:
             else:
                 print(f"Erro ao enviar histórico: {response.status_code}, {response.text}")
                 return None  # Caso de erro, retorna None
+
+    async def fetch_historico(self, user_historico_id: int):
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{self.base_url}/api/v1/usuarios/historicos/{user_historico_id}")
+
+            if response.status_code == 200:
+                historico_data = response.json()  # Converte a resposta para JSON
+
+                # Verificar se a resposta é uma lista
+                if isinstance(historico_data, list):
+                    historicos = []
+                    for h in historico_data:
+                        sala_nome = h.get('sala_nome', 'Nome da sala não encontrado')
+                        usuario_nome = h.get('usuario_nome', 'Nome do usuário não encontrado')
+                        data_hora_entrada = h.get('data_hora_retirada', 'Data de entrada não disponível')
+                        data_hora_saida = h.get('data_hora_devolucao', 'Data de saída não disponível')
+
+                        historicos.append({
+                            "sala_nome": sala_nome,
+                            "usuario_nome": usuario_nome,
+                            "entrada": data_hora_entrada,
+                            "saida": data_hora_saida
+                        })
+
+                    return historicos
+
+            elif response.status_code == 404:
+                print(f"Histórico com ID {user_historico_id} não encontrado!")
+            else:
+                print(f"Erro ao buscar histórico: {response.text}")

@@ -59,9 +59,9 @@ kv = """
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
                 MDTextField:
-                    id: funcao
+                    id: funcao_id
                     hint_text: "Função"
-                    helper_text: "Sua Funçao"
+                    helper_text: "Sua Função"
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
                 MDTextField:
@@ -150,14 +150,14 @@ kv = """
                 id: history_card
                 orientation: "vertical"
                 size_hint: 0.9, None
-                height: self.minimum_height if root.show_history else 0  # Altura controlada pela visibilidade
+                height: self.minimum_height if root.show_history else 0
                 padding: dp(20)
                 spacing: dp(15)
                 pos_hint: {"center_x": 0.5}
                 ripple_behavior: True
                 adaptive_height: True
-                opacity: 1 if root.show_history else 0  # Opacidade controlada pela visibilidade
-
+                opacity: 1 if root.show_history else 0
+            
                 MDLabel:
                     text: "Histórico de Salas"
                     font_style: "H6"
@@ -165,41 +165,16 @@ kv = """
                     halign: "left"
                     size_hint_y: None
                     height: self.texture_size[1]
-
-                MDBoxLayout:
-                    orientation: "vertical"
-                    spacing: dp(10)
-                    adaptive_height: True
-
+            
+                ScrollView:
+                    size_hint_y: None
+                    height: dp(300)
+            
                     MDBoxLayout:
+                        id: history_layout
                         orientation: "vertical"
-                        spacing: dp(5)
+                        spacing: dp(10)
                         adaptive_height: True
-                        md_bg_color: 0.95, 0.95, 0.95, 1
-
-                        MDLabel:
-                            text: "Sala: 101"
-                            font_style: "Body1"
-                            theme_text_color: "Primary"
-                            halign: "left"
-                            size_hint_y: None
-                            height: self.texture_size[1]
-
-                        MDLabel:
-                            text: "Data e Hora de Entrada: 01/10/2024 10:00"
-                            font_style: "Caption"
-                            theme_text_color: "Secondary"
-                            halign: "left"
-                            size_hint_y: None
-                            height: self.texture_size[1]
-
-                        MDLabel:
-                            text: "Hora Finalizada: 01/10/2024 12:00"
-                            font_style: "Caption"
-                            theme_text_color: "Secondary"
-                            halign: "left"
-                            size_hint_y: None
-                            height: self.texture_size[1]
 
             MDRaisedButton:
                 text: "Salvar Informações" 

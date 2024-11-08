@@ -68,7 +68,7 @@ kv = """
                     theme_text_color: "Primary"
 
                 MDLabel:
-                    id:funcao_id
+                    id:funcao
                     text: "Função: Professor de Matemática"
                     font_style: "Subtitle1"
                     theme_text_color: "Primary"

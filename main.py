@@ -4,7 +4,10 @@ from datetime import datetime
 import requests
 from kivy.clock import Clock
 from kivy.lang import Builder
+from kivy.metrics import dp
 from kivymd.app import MDApp
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.label import MDLabel
 from kivymd.uix.screenmanager import MDScreenManager
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
@@ -68,7 +71,7 @@ class MainApp(MDApp):
         if dados:
             campos = {
                 "nome": info_screen.ids.name_id,
-                "funcao":info_screen.ids.funcao_id,
+                "funcao":info_screen.ids.funcao,
                 "email": info_screen.ids.email_id,
                 "telefone": info_screen.ids.phone_id,
 
@@ -94,13 +97,63 @@ class MainApp(MDApp):
 
             user_id = self.user_id
             dados = await self.api.fetch_user(user_id)
+            historicos = await self.api.fetch_historico(user_id)
 
+            if historicos:
+                # Limpa o layout do histórico antes de adicionar novos itens
+                user_info_screen.ids.history_layout.clear_widgets()
 
+                # Itera sobre cada histórico e cria widgets para cada um
+                for historico in historicos:
+                    # Cria uma nova estrutura para cada item de histórico
+                    historico_item = MDBoxLayout(
+                        orientation="vertical",
+                        spacing=dp(5),
+                        adaptive_height=True,
+                        md_bg_color=(0.95, 0.95, 0.95, 1),
+                        padding=dp(10)
+                    )
+
+                    # Preenche o layout com as informações do histórico
+                    sala_nome = MDLabel(
+                        text=f"Sala: {historico.get('sala_nome', 'Não informado')}",
+                        font_style="Body1",
+                        theme_text_color="Primary",
+                        halign="left",
+                        size_hint_y=None,
+                        height=dp(24)
+                    )
+                    entrada = MDLabel(
+                        text=f"Data e Hora de Entrada: {historico.get('entrada', 'Não informado')}",
+                        font_style="Caption",
+                        theme_text_color="Secondary",
+                        halign="left",
+                        size_hint_y=None,
+                        height=dp(20)
+                    )
+                    saida = MDLabel(
+                        text=f"Hora Finalizada: {historico.get('saida', 'Não informado')}",
+                        font_style="Caption",
+                        theme_text_color="Secondary",
+                        halign="left",
+                        size_hint_y=None,
+                        height=dp(20)
+                    )
+
+                    # Adiciona as labels ao item de histórico
+                    historico_item.add_widget(sala_nome)
+                    historico_item.add_widget(entrada)
+                    historico_item.add_widget(saida)
+
+                    # Adiciona o item de histórico ao layout principal do ScrollView
+                    user_info_screen.ids.history_layout.add_widget(historico_item)
+            else:
+                print("Nenhum histórico encontrado para o usuário.")
             if dados:
                 campos = {
                     "nome": user_info_screen.ids.first_name,
                     "sobrenome": user_info_screen.ids.second_name,
-                    "funcao":user_info_screen.ids.funcao,
+                    "funcao":user_info_screen.ids.funcao_id,
                     "email": user_info_screen.ids.email,
                     "telefone": user_info_screen.ids.phone,
 
@@ -123,6 +176,8 @@ class MainApp(MDApp):
 
         except Exception as e:
             print("Ocorreu um erro:", str(e))
+
+    #async def show_historico_acesso(self):
 
 
     def try_go_back_to_main(self):
