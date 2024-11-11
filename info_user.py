@@ -152,7 +152,7 @@ kv = """
                 size_hint: 0.9, None
                 height: self.minimum_height if root.show_history else 0
                 padding: dp(50)
-                spacing: dp(15)
+               
                 pos_hint: {"center_x": 0.5}
                 ripple_behavior: True
                 adaptive_height: True
@@ -175,6 +175,7 @@ kv = """
                         id: history_layout
                         orientation: "vertical"
                         spacing: dp(10)
+                      
                         adaptive_height: True
 
             # Botões de Ação
@@ -183,7 +184,7 @@ kv = """
                 pos_hint: {"center_x": 0.5}
                 size_hint: None, None
                 size: dp(200), dp(48)
-                on_release: app.save_user_info()
+                on_release: app.on_save_register_now()
                 opacity: 1 if not root.show_history else 0  # Mostra somente no modo cadastro
                 disabled: root.show_history  # Desabilita no modo logado
 
@@ -197,7 +198,7 @@ kv = """
                 text_color: 1, 1, 1, 1
                 opacity: 1 if root.show_history else 0  # Mostra somente no modo logado
                 disabled: not root.show_history  # Desabilita no modo cadastro
-                on_release: app.update_user_info()
+                on_release: app.on_update_user()
 """
 
 Builder.load_string(kv)

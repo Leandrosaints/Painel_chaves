@@ -34,7 +34,7 @@ kv = """
                 allow_stretch: True
                 keep_ratio: True
             MDLabel:
-                text: "N da Chave: "
+                text: "Esta pegando a sala: "
                 font_style: "H5"
                 theme_text_color: "Primary"
                 halign: "center"
@@ -134,7 +134,7 @@ kv = """
                         text: "Pegar"
                         md_bg_color: app.theme_cls.primary_color
                         pos_hint: {"center_x": 0.5}
-                        on_release: root.get_historico(3)
+                        on_release: app.on_click_register_historico()
 
                     MDRaisedButton:
                         id: devolver_button
@@ -148,22 +148,19 @@ kv = """
 
 Builder.load_string(kv)
 
-class Key:
-    def __init__(self, key_id):
-        self.key_id = key_id
-        self.is_occupied = False
+
 
 class InfoScreen(MDScreen):
     status_label = ObjectProperty(None)  # Referência para o status label
     keys = ListProperty([])  # Lista de chaves
-    current_key_id = NumericProperty(None)
+    current_key_id = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.loading_dialog = None  # Adicione isso para inicializar a variável de diálogo
-    def get_historico(self, index):
+    ''' def get_historico(self, index):
         app = MDApp.get_running_app()
-        app.on_click_get_historico(index)
+        app.on_click_get_historico(index)'''
 
 
     def update_title(self, name):
@@ -171,8 +168,9 @@ class InfoScreen(MDScreen):
 
     def toggle_key_status(self, key_id):
         self.current_key_id = key_id  # Armazena o ID da chave atual
-        key = next((k for k in self.keys if k.key_id == key_id), None)
-        if key:
+
+
+        '''if key:
             if key.is_occupied:
                 key.is_occupied = False  # A chave se torna livre
                 self.status_label.text = f"Status: Chave {key_id} devolvida e livre."
@@ -186,7 +184,7 @@ class InfoScreen(MDScreen):
                 self.ids.devolver_button.opacity = 1
                 self.ids.devolver_button.disabled = False
                 self.ids.pegar_button.opacity = 0
-                self.ids.pegar_button.disabled = True
+                self.ids.pegar_button.disabled = True'''
     def show_devolver_button(self):
         # Mostra o botão "Devolver" e oculta o botão "Pegar"
         self.devolver_button.opacity = 1

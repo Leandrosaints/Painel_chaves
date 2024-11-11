@@ -1,3 +1,5 @@
+import asyncio
+
 from kivy.clock import Clock
 from kivy.properties import ObjectProperty
 from kivy.lang import Builder
@@ -12,6 +14,8 @@ from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from kivy.animation import Animation
 from kivy.uix.gridlayout import GridLayout
+
+from core.api_client import APIClientSalas
 
 kv = """
 <MainScreen>:
@@ -137,16 +141,21 @@ class RotatableButton(MDFlatButton):
 
 class MainScreen(MDScreen):
     container = ObjectProperty(None)
-
+    api_client =  APIClientSalas("http://localhost:8000")  # Altere para a URL correta da sua API
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        #Clock.schedule_once(self.initialize_container, 0.1)  # Delay reduzido
+        Clock.schedule_once(self.initialize_container, 0.1)  # Delay reduzido
 
     def on_kv_post(self, base_widget):
         self.initialize_container()  # Chamada aqui
-    def initialize_container(self):
+
+    async def fetch_salas(self):
+
+        return await self.api_client.get_salas()
+
+    def initialize_container(self, *args):  # Adicione *args aqui
         self.container = self.ids.container
-        self.create_image_buttons()
+        asyncio.run(self.create_image_buttons())  # Chama a função assíncrona
         Window.bind(on_resize=self.update_grid_columns)
         self.update_grid_columns()
 
@@ -161,28 +170,24 @@ class MainScreen(MDScreen):
             self.container.spacing = [spacing, spacing]
             self.container.padding = [padding, padding]
 
-    def create_image_buttons(self):
-        image_path = "src/chave_open.png"
-        nomes = [
-            "sala 01", "sala 02", "sala 03", "sala 04", "lab frc", "Senai lab",
-            "sala 06", "sala 07", "sala 08", "sala 09", "Lab 01", "Lab 02",
-            "Lab 03", "Lab 04", "Lab 05", "Lab 18", "sala 10", "sala 11",
-            "sala 12", "sala 13", "sala 26", "Lab 30", "sala 14", "sala 15",
-            "sala 16", "Lab 19", "sala 01", "sala 02", "sala 03", "sala 04",
-            "lab frc", "Senai lab", "sala 06", "sala 07", "sala 08", "sala 09",
-            "Lab 01", "Lab 02", "Lab 03", "Lab 04", "Lab 05", "Lab 18", "sala 10",
-            "sala 11", "sala 12", "sala 13", "sala 26", "Lab 30", "sala 14",
-            "sala 15", "sala 16", "Lab 19"
-        ]
-        num_buttons = 50
-        #nomes = ["sala 01", "sala 02", "sala 03", "sala 04", "lab frc", "Senai lab"]
-        for i in range(num_buttons):
-            button_id = f"button_{i}"
+    async def create_image_buttons(self):
+        image_path_free = "src/chave_open.png"
+        image_path_occupied = "src/chave_red.png"
+
+        self.container.clear_widgets()
+        salas = await self.fetch_salas()
+
+        if salas is None:
+            print("Erro ao obter salas")
+            return
+
+        for sala in salas:
+            button_id = sala['numero']  # Agora o id é apenas o número da sala
             button_layout = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(100),
                                       padding=[dp(10), dp(10), dp(10), dp(10)])
 
             number_label = Label(
-                text=str(i + 1),
+                text=str(sala['numero']),
                 size_hint=(1, None),
                 height=dp(15),
                 halign='center',
@@ -191,14 +196,19 @@ class MainScreen(MDScreen):
             number_label.bind(size=number_label.setter('text_size'))
             button_layout.add_widget(number_label)
 
-            button = RotatableButton(id=button_id)
-            button.bind(on_release=lambda btn, index=i, name=nomes[i]: self.show_info_screen(index, name))
-            button_image = Image(source=image_path, size=(dp(80), dp(80)))
+            # Escolhe a imagem com base no estado de ocupação da sala
+            if sala['is_ocupada']:
+                button_image = Image(source=image_path_occupied, size=(dp(80), dp(80)))
+            else:
+                button_image = Image(source=image_path_free, size=(dp(80), dp(80)))
+
+            button = RotatableButton(id=str(button_id))  # Converte o id para string, se necessário
             button.add_widget(button_image)
+            button.bind(on_release=self.create_on_release(button_id, sala['nome']))
             button_layout.add_widget(button)
 
             name_label = Label(
-                text=nomes[i],
+                text=sala['nome'],
                 size_hint=(1, None),
                 height=dp(15),
                 halign='center',
@@ -208,7 +218,11 @@ class MainScreen(MDScreen):
             button_layout.add_widget(name_label)
             self.container.add_widget(button_layout)
 
+    def create_on_release(self, button_id, name):
+        return lambda btn: self.show_info_screen(button_id, name)
+
     def show_info_screen(self, index, name):
         app = MDApp.get_running_app()
         app.on_click_info_salas(index, name)
+
 

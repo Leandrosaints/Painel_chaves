@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from typing import Optional
 
@@ -71,7 +72,8 @@ class APIClient:
             response = await client.post(url, json=data_historico)
 
             # Verificar a resposta e retornar o resultado
-            if response.status_code == 201:
+            if response:
+
                 return response.json()  # Retorna o JSON com o histórico criado
             else:
                 print(f"Erro ao enviar histórico: {response.status_code}, {response.text}")
@@ -158,4 +160,44 @@ class APIClient:
                 print(f"Erro ao redefinir senha: {response.status_code}")
                 return None
 
+class APIClientSalas:
+    def __init__(self, base_url):
+        self.base_url = base_url
 
+    async def get_salas(self):
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"{self.base_url}/api/v1/salas/salas")
+                response.raise_for_status()  # Levanta um erro para códigos de status 4xx/5xx
+
+                # Supondo que a resposta seja uma lista de salas
+                salas = response.json()
+
+                # Processar as salas para obter o número, o nome e o valor 'is_ocupada'
+                resultado = []
+                for sala in salas:
+                    resultado.append({
+                        "numero": sala["numero_chave"],  # Substitua "numero" pelo campo correto no seu modelo
+                        "nome": sala["nome"],  # Substitua "nome" pelo campo correto no seu modelo
+                        "is_ocupada": sala["is_ocupada"]  # Substitua "is_ocupada" pelo campo correto no seu modelo
+                    })
+
+                # Contar o número de salas
+                total_salas = len(salas)
+                print(f"Total de salas: {total_salas}")
+
+                return resultado  # Retorna a lista de dicionários com os detalhes das salas
+
+        except httpx.RequestError as e:
+            print(f"Erro ao acessar a API: {e}")
+            return None
+async def main():
+    api_client = APIClientSalas("http://localhost:8000")  # Altere para a URL correta da sua API
+    salas = await api_client.get_salas()
+    if salas is not None:
+        for sala in salas:
+            print(f"Número: {sala['numero']}, Nome: {sala['nome']}, Ocupada: {sala['is_ocupada']}")
+
+# Executar o teste
+if __name__ == "__main__":
+    asyncio.run(main())
