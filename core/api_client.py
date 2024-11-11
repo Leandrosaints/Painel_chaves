@@ -191,6 +191,56 @@ class APIClientSalas:
         except httpx.RequestError as e:
             print(f"Erro ao acessar a API: {e}")
             return None
+
+    async def update_sala_status(self, sala_id: int, is_ocupada: bool):
+        try:
+            async with httpx.AsyncClient() as client:
+                # Monta o corpo da requisição para atualizar o status
+                payload = {"is_ocupada": is_ocupada}
+                response = await client.patch(
+                    f"{self.base_url}/api/v1/salas/{sala_id}", json=payload
+                )
+                response.raise_for_status()
+
+                # Retorna a resposta como um dicionário JSON
+                return response.json()
+
+        except httpx.RequestError as e:
+            print(f"Erro ao acessar a API: {e}")
+            return None
+
+    async def get_historico_user(self, historico_id: int):
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(f"{self.base_url}/api/v1/historicos/historicos/{historico_id}")
+                response.raise_for_status()  # Levanta um erro para códigos de status 4xx/5xx
+
+                # Supondo que a resposta seja uma lista ou dicionário
+                historico = response.json()
+                #print(historico)
+                # Se for uma lista, pega o primeiro item
+                if isinstance(historico, list) and historico:
+                    historico = historico[0]
+
+                # Agora verificamos se a chave 'usuario_funcao' existe antes de acessá-la
+                resultado = {
+                    "nome": historico.get("nome", "Nome não disponível"),
+                    # Se não encontrar, retorna "Nome não disponível"
+                    "funcao": historico.get("funcao", "Função não disponível"),
+                    # Se não encontrar, retorna "Função não disponível"
+                    "email": historico.get("email", "Email não disponível"),
+                    "telefone": historico.get("telefone", "Telefone não disponível"),
+                    "data_hora_retirada": historico.get("data_hora_retirada", "Data não disponível"),
+                    "data_hora_devolucao": historico.get("data_hora_devolucao", "Data não disponível")
+                }
+
+                return resultado
+
+        except httpx.RequestError as e:
+            print(f"Erro ao acessar a API: {e}")
+        return None
+
+
 async def main():
     api_client = APIClientSalas("http://localhost:8000")  # Altere para a URL correta da sua API
     salas = await api_client.get_salas()

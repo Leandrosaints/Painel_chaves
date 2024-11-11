@@ -17,7 +17,8 @@ from gestor import MainScreen  # Importar telas
 from infoScreen import InfoScreen
 from info_user import UserInfoScreen
 from redefinir_senha import ResetPasswordScreen
-from core.api_client import APIClient
+from core.api_client import APIClient, APIClientSalas
+
 kv = '''
 MDScreenManager:
     LoginScreen:
@@ -35,6 +36,7 @@ def verificar_senha(senha: str, hash_senha: str) -> bool:
 
 class MainApp(MDApp):
     api = APIClient("http://127.0.0.1:8000")
+    api_clientsalas =  APIClientSalas("http://localhost:8000")
     user_token = None  # Variável para armazenar o token do usuário
     user_id = None
     id_sala = None
@@ -155,16 +157,48 @@ class MainApp(MDApp):
         else:
             print("Usuário não encontrado ou sem dados!")
 
-    async def show_info_screen(self, index, name):
-        """ Exibe a tela de informações da sala ao clicar na sala """
-        info_screen = self.root.get_screen('info_screen')
-        info_screen.ids.info_title.text = f"{name}"
-        self.id_sala = index
+    async def show_info_screen(self, index, name, status):
+        # Verifica se o status é True
+        if status:
+            # Se o status for True, exibe as informações do histórico do usuário
+            historico = await self.api_clientsalas.get_historico_user(
+                index)  # Supondo que o 'index' seja o 'historico_id'
 
-        dados = await self.api.fetch_user(self.user_id)
-        if dados:
-            self._fill_info_screen_fields(info_screen, dados)
+            if historico:
+                # Exibe as informações detalhadas do histórico na tela
+                info_screen = self.root.get_screen('info_screen')
+                info_screen.ids.info_title.text = f"Histórico de {name}"
+                self.id_sala = index
+                info_screen.toggle_key_status(True)
 
+                # Passa o histórico como dados para preencher os campos
+                self._fill_info_screen_fields(info_screen, historico)
+
+            else:
+                # Caso não consiga carregar as informações do histórico
+                print("Não foi possível carregar as informações do histórico.")
+
+        else:
+            # Se o status for False, exibe as informações do usuário
+            print(f"Status é False, exibindo dados de {name}.")
+
+            info_screen = self.root.get_screen('info_screen')
+            info_screen.ids.info_title.text = f"{name}"
+            self.id_sala = index
+            info_screen.toggle_key_status(True)
+
+            # Aqui, vamos buscar os dados do usuário
+            dados = await self.api.fetch_user(self.user_id)
+
+            if dados:
+                # Passa os dados do usuário para preencher os campos
+                self._fill_info_screen_fields(info_screen, dados)
+
+            else:
+                # Caso não consiga carregar as informações do usuário
+                print("Não foi possível carregar as informações do usuário.")
+
+        # Muda para a tela de informações
         self.root.current = 'info_screen'
 
     def _fill_info_screen_fields(self, info_screen, dados):
@@ -207,12 +241,23 @@ class MainApp(MDApp):
         }
 
         resposta = await self.api.enviar_historico(dados_historico)
+        await self.api_clientsalas.update_sala_status(sala_id=self.id_sala, is_ocupada=True)
+
+        self.refresh_buttons(2)
         if resposta:
             print("Histórico de acesso registrado com sucesso!")
         else:
             print("Erro ao registrar o histórico de acesso.")
             print(f"Erro detalhado: {resposta}")
 
+    def refresh_buttons(self, delay=1):
+        """Atualiza os botões após uma alteração no status com um atraso."""
+        Clock.schedule_once(self._delayed_refresh, delay)
+        self.root.current = 'main'
+
+    def _delayed_refresh(self, *args):
+        tela_screen_main = self.root.get_screen('main')
+        asyncio.run(tela_screen_main.create_image_buttons())
 
     async def reset_senha_async(self):
         """ Redefine a senha do usuário """
@@ -335,9 +380,10 @@ class MainApp(MDApp):
 
         return logradouro, numero, bairro, cidade, estado
 
-    def on_click_info_salas(self, index, name):
+    def on_click_info_salas(self, index, name, status):
+
         """ Exibe informações detalhadas ao clicar em uma sala """
-        asyncio.run(self.show_info_screen(index, name))
+        asyncio.run(self.show_info_screen(index, name, status))
     def on_update_user(self):
         asyncio.run(self.update_user_info())
 

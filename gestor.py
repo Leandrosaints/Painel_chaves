@@ -204,7 +204,7 @@ class MainScreen(MDScreen):
 
             button = RotatableButton(id=str(button_id))  # Converte o id para string, se necessário
             button.add_widget(button_image)
-            button.bind(on_release=self.create_on_release(button_id, sala['nome']))
+            button.bind(on_release=self.create_on_release(button_id, sala['nome'], sala["is_ocupada"]))
             button_layout.add_widget(button)
 
             name_label = Label(
@@ -218,11 +218,12 @@ class MainScreen(MDScreen):
             button_layout.add_widget(name_label)
             self.container.add_widget(button_layout)
 
-    def create_on_release(self, button_id, name):
-        return lambda btn: self.show_info_screen(button_id, name)
+    def create_on_release(self, button_id, name, status):
+        return lambda btn: self.show_info_screen(button_id, name, status)
 
-    def show_info_screen(self, index, name):
+
+    def show_info_screen(self, index, name, status):
         app = MDApp.get_running_app()
-        app.on_click_info_salas(index, name)
+        app.on_click_info_salas(index, name, status)
 
 

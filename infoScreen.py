@@ -1,6 +1,8 @@
+from datetime import datetime
+
 from kivymd.uix.screen import MDScreen
 from kivy.lang import Builder
-from kivy.properties import ObjectProperty, ListProperty, NumericProperty
+from kivy.properties import ObjectProperty, ListProperty, NumericProperty, Clock
 from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -102,11 +104,13 @@ kv = """
                         allow_stretch: True
                         keep_ratio: True
                     MDLabel:
+                        id: texto_data
                         text: "Data: 28/10/2024"
                         font_style: "Caption"
                         halign: "center"
                         theme_text_color: "Secondary"
                     MDLabel:
+                        id: texto_hora
                         text: "Hora: 14:30"
                         font_style: "Caption"
                         halign: "center"
@@ -154,57 +158,66 @@ class InfoScreen(MDScreen):
     status_label = ObjectProperty(None)  # Referência para o status label
     keys = ListProperty([])  # Lista de chaves
     current_key_id = None
+    agora = datetime.now()
+
+    # Dividir em data e hora
+
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.loading_dialog = None  # Adicione isso para inicializar a variável de diálogo
-    ''' def get_historico(self, index):
-        app = MDApp.get_running_app()
-        app.on_click_get_historico(index)'''
+        # Pegar a data e hora atuais
+        agora = datetime.now()
+
+        # Dividir em data e hora
+        self.data = agora.date()
+        #self.hora = agora.time()
+
+        # Atualizar os rótulos com a data e hora
+        #self.ids.texto_data.text = str(self.data)
+        #self.ids.texto_hora.text = str(self.hora)
+
+        #self.update_date_time()
+
+        # Atualizar a data e hora a cada segundo
+        Clock.schedule_interval(self.update_date_time, 1)
 
 
+    def update_date_time(self, *args):
+        """Atualiza a data e hora na interface."""
+        agora = datetime.now()
+
+        # Atualizar os valores de data e hora
+        self.ids.texto_data.text = agora.strftime("%d/%m/%Y")  # Formatar como '28/10/2024'
+        self.ids.texto_hora.text = agora.strftime("%H:%M")  # Formatar como '14:30'
     def update_title(self, name):
         self.ids.info_title.text = f"{name}"
 
-    def toggle_key_status(self, key_id):
-        self.current_key_id = key_id  # Armazena o ID da chave atual
+    def toggle_key_status(self, status: bool):
+        """Alterna o estado dos botões com base no status da chave."""
 
+        # Controle da opacidade e habilitação/desabilitação dos botões
+        if False:
+            # Chave disponível (status = True), botão "Pegar" fica visível e habilitado, "Devolver" invisível e desabilitado
+            self.ids.devolver_button.opacity = 0  # Torna o botão "Devolver" invisível
+            self.ids.devolver_button.disabled = True  # Desabilita o botão "Devolver"
 
-        '''if key:
-            if key.is_occupied:
-                key.is_occupied = False  # A chave se torna livre
-                self.status_label.text = f"Status: Chave {key_id} devolvida e livre."
-                self.ids.devolver_button.opacity = 0
-                self.ids.devolver_button.disabled = True
-                self.ids.pegar_button.opacity = 1
-                self.ids.pegar_button.disabled = False
-            else:
-                key.is_occupied = True  # A chave se torna ocupada
-                self.status_label.text = f"Status: Chave {key_id} pegada e ocupada."
-                self.ids.devolver_button.opacity = 1
-                self.ids.devolver_button.disabled = False
-                self.ids.pegar_button.opacity = 0
-                self.ids.pegar_button.disabled = True'''
-    def show_devolver_button(self):
-        # Mostra o botão "Devolver" e oculta o botão "Pegar"
-        self.devolver_button.opacity = 1
-        self.devolver_button.disabled = False
+            self.ids.pegar_button.opacity = 1  # Torna o botão "Pegar" visível
+            self.ids.pegar_button.disabled = False  # Habilita o botão "Pegar"
 
-        pegar_button = self.ids.pegar_button
-        pegar_button.opacity = 0
-        pegar_button.disabled = True
+            # Você pode atualizar o texto de algum rótulo de status, se necessário
+            # self.status_label.text = f"Status: Chave disponível e livre."
 
-    def show_pegar_button(self):
-        # Mostra o botão "Pegar" e oculta o botão "Devolver"
-        self.devolver_button.opacity = 0
-        self.devolver_button.disabled = True
+        else:
+            # Chave ocupada (status = False), botão "Pegar" fica invisível e desabilitado, "Devolver" visível e habilitado
+            self.ids.devolver_button.opacity = 1  # Torna o botão "Devolver" visível
+            self.ids.devolver_button.disabled = False  # Habilita o botão "Devolver"
 
-        pegar_button = self.ids.pegar_button
-        pegar_button.opacity = 1
-        pegar_button.disabled = False
+            self.ids.pegar_button.opacity = 0  # Torna o botão "Pegar" invisível
+            self.ids.pegar_button.disabled = True  # Desabilita o botão "Pegar"
 
-        # Exibe o diálogo ao clicar no botão "Devolver"
-        self.show_loading_dialog()
+            # Você pode atualizar o texto de algum rótulo de status, se necessário
+            # self.status_label.text = f"Status: Chave ocupada e pegada."
 
     def show_loading_dialog(self):
         # Obtendo o texto do 'info_title' diretamente
@@ -258,3 +271,24 @@ class InfoScreen(MDScreen):
 
         def dismiss_dialog(self, *args):
             self.dialog_ref.loading_dialog.dismiss()
+''' def show_devolver_button(self):
+        # Mostra o botão "Devolver" e oculta o botão "Pegar"
+        self.devolver_button.opacity = 1
+        self.devolver_button.disabled = False
+
+        pegar_button = self.ids.pegar_button
+        pegar_button.opacity = 0
+        pegar_button.disabled = True
+
+    def show_pegar_button(self):
+        # Mostra o botão "Pegar" e oculta o botão "Devolver"
+        self.devolver_button.opacity = 0
+        self.devolver_button.disabled = True
+
+        pegar_button = self.ids.pegar_button
+        pegar_button.opacity = 1
+        pegar_button.disabled = False
+
+        # Exibe o diálogo ao clicar no botão "Devolver"
+        self.show_loading_dialog()
+'''
