@@ -153,12 +153,13 @@ kv = """
 Builder.load_string(kv)
 
 
-
+from core.api_client import APIClientSalas
 class InfoScreen(MDScreen):
     status_label = ObjectProperty(None)  # Referência para o status label
     keys = ListProperty([])  # Lista de chaves
     current_key_id = None
     agora = datetime.now()
+    api =  APIClientSalas("http://localhost:8000")
 
     # Dividir em data e hora
 
@@ -193,31 +194,36 @@ class InfoScreen(MDScreen):
     def update_title(self, name):
         self.ids.info_title.text = f"{name}"
 
-    def toggle_key_status(self, status: bool):
-        """Alterna o estado dos botões com base no status da chave."""
+    async def get_last_user_for_room(self, room_id):
+        """Obtém o último usuário vinculado à sala a partir do histórico de acesso."""
+        historico = await self.api.get_historico_user(room_id)
+        if historico:
+            return historico.get("usuario_id")  # Retorna o ID do último usuário que acessou a sala
+        return None
 
-        # Controle da opacidade e habilitação/desabilitação dos botões
-        if False:
-            # Chave disponível (status = True), botão "Pegar" fica visível e habilitado, "Devolver" invisível e desabilitado
-            self.ids.devolver_button.opacity = 0  # Torna o botão "Devolver" invisível
-            self.ids.devolver_button.disabled = True  # Desabilita o botão "Devolver"
+    def toggle_key_status(self, status: bool, room_id: int, current_user_id: int):
+        """Alterna o estado dos botões com base no status da chave e no usuário."""
 
-            self.ids.pegar_button.opacity = 1  # Torna o botão "Pegar" visível
-            self.ids.pegar_button.disabled = False  # Habilita o botão "Pegar"
 
-            # Você pode atualizar o texto de algum rótulo de status, se necessário
-            # self.status_label.text = f"Status: Chave disponível e livre."
-
+        if status is False:
+            # Chave disponível, botão "Pegar" fica visível e habilitado, "Devolver" invisível e desabilitado
+            self.ids.devolver_button.opacity = 0
+            self.ids.devolver_button.disabled = True
+            self.ids.pegar_button.opacity = 1
+            self.ids.pegar_button.disabled = False
         else:
-            # Chave ocupada (status = False), botão "Pegar" fica invisível e desabilitado, "Devolver" visível e habilitado
-            self.ids.devolver_button.opacity = 1  # Torna o botão "Devolver" visível
-            self.ids.devolver_button.disabled = False  # Habilita o botão "Devolver"
 
-            self.ids.pegar_button.opacity = 0  # Torna o botão "Pegar" invisível
-            self.ids.pegar_button.disabled = True  # Desabilita o botão "Pegar"
+            # Chave ocupada; "Devolver" só visível se o usuário atual for o último a pegar a chave
+            if room_id == current_user_id:
 
-            # Você pode atualizar o texto de algum rótulo de status, se necessário
-            # self.status_label.text = f"Status: Chave ocupada e pegada."
+                self.ids.devolver_button.opacity = 1
+                self.ids.devolver_button.disabled = False
+            else:
+                self.ids.devolver_button.opacity = 0
+                self.ids.devolver_button.disabled = True
+
+            self.ids.pegar_button.opacity = 0
+            self.ids.pegar_button.disabled = True
 
     def show_loading_dialog(self):
         # Obtendo o texto do 'info_title' diretamente

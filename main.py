@@ -158,37 +158,34 @@ class MainApp(MDApp):
             print("Usuário não encontrado ou sem dados!")
 
     async def show_info_screen(self, index, name, status):
-        # Verifica se o status é True
+        info_screen = self.root.get_screen('info_screen')
+        self.id_sala = index
+        # Atualiza o status dos botões na primeira vez
+
+        # Inicia o Clock para chamar toggle_key_status periodicamente, com o status atualizado
+        Clock.schedule_interval(lambda dt: info_status, 1)
+
+        info_screen.ids.info_title.text = f"{name}"
+        historico = await self.api_clientsalas.get_historico_user(index)
+        info_status = info_screen.toggle_key_status(status, historico["user_id"], self.user_id)
+
         if status:
             # Se o status for True, exibe as informações do histórico do usuário
-            historico = await self.api_clientsalas.get_historico_user(
-                index)  # Supondo que o 'index' seja o 'historico_id'
-
+             # Supondo que o 'index' seja o 'historico_id'
+            #print(historico)
             if historico:
-                # Exibe as informações detalhadas do histórico na tela
-                info_screen = self.root.get_screen('info_screen')
-                info_screen.ids.info_title.text = f"Histórico de {name}"
-                self.id_sala = index
-                info_screen.toggle_key_status(True)
 
-                # Passa o histórico como dados para preencher os campos
                 self._fill_info_screen_fields(info_screen, historico)
-
             else:
                 # Caso não consiga carregar as informações do histórico
                 print("Não foi possível carregar as informações do histórico.")
 
+
         else:
-            # Se o status for False, exibe as informações do usuário
-            print(f"Status é False, exibindo dados de {name}.")
-
-            info_screen = self.root.get_screen('info_screen')
-            info_screen.ids.info_title.text = f"{name}"
-            self.id_sala = index
-            info_screen.toggle_key_status(True)
-
+            #info_screen.toggle_key_status(status)
             # Aqui, vamos buscar os dados do usuário
             dados = await self.api.fetch_user(self.user_id)
+
 
             if dados:
                 # Passa os dados do usuário para preencher os campos
@@ -398,8 +395,9 @@ class MainApp(MDApp):
             self.root.current = "main"
         else:
             self.root.current = 'login'
-            #print("Usuário não está logado. Não pode retornar para a tela principal.")
-    def on_click_register_historico(self):
+
+
+    def on_click_register_historico(self):#trabalhando aqui implementaçao do passar o status
         asyncio.run(self.register_historico())
 
     def on_save_register_now(self):
@@ -410,6 +408,7 @@ class MainApp(MDApp):
 
     def _run_save_user_info(self):
         asyncio.run(self.save_user_info())
+
 
 if __name__ == "__main__":
 

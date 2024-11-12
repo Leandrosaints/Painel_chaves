@@ -224,6 +224,7 @@ class APIClientSalas:
 
                 # Agora verificamos se a chave 'usuario_funcao' existe antes de acessá-la
                 resultado = {
+                    "user_id": historico.get("usuario_id"),
                     "nome": historico.get("nome", "Nome não disponível"),
                     # Se não encontrar, retorna "Nome não disponível"
                     "funcao": historico.get("funcao", "Função não disponível"),
