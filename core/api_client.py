@@ -209,6 +209,31 @@ class APIClientSalas:
             print(f"Erro ao acessar a API: {e}")
             return None
 
+    async def update_historico_devolucao(self,room_id: int, user_id: int):
+        """
+        Atualiza o campo data_hora_devolucao de um registro específico no histórico de acesso.
+        A data e hora são registradas automaticamente pelo servidor.
+
+        Parameters:
+            historico_id (int): O ID do histórico de acesso a ser atualizado.
+        """
+        try:
+            async with httpx.AsyncClient() as client:
+                # Requisição PATCH para atualizar o campo de devolução com base no `historico_id`
+                response = await client.patch(
+                    f"{self.base_url}/api/v1/historicos/historico/devolver/{room_id}/{user_id}"
+                )
+                response.raise_for_status()  # Levanta uma exceção para códigos de erro HTTP
+
+                # Retorna a resposta como um dicionário JSON
+                return response.json()
+
+        except httpx.RequestError as e:
+            print(f"Erro ao acessar a API: {e}")
+            return None
+        except httpx.HTTPStatusError as e:
+            print(f"Erro HTTP ao atualizar o histórico: {e.response.status_code} - {e.response.text}")
+            return None
     async def get_historico_user(self, historico_id: int):
         try:
             async with httpx.AsyncClient() as client:
@@ -232,7 +257,7 @@ class APIClientSalas:
                     "email": historico.get("email", "Email não disponível"),
                     "telefone": historico.get("telefone", "Telefone não disponível"),
                     "data_hora_retirada": historico.get("data_hora_retirada", "Data não disponível"),
-                    "data_hora_devolucao": historico.get("data_hora_devolucao", "Data não disponível")
+
                 }
 
                 return resultado

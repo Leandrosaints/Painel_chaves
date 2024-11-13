@@ -166,7 +166,15 @@ class MainApp(MDApp):
         Clock.schedule_interval(lambda dt: info_status, 1)
 
         info_screen.ids.info_title.text = f"{name}"
-        historico = await self.api_clientsalas.get_historico_user(index)
+        try:
+            historico = await self.api_clientsalas.get_historico_user(index)
+        except KeyError:  # Ou outra exceção específica, como IndexError ou um erro de conexão
+            # Se ocorrer um erro, cria um dicionário padrão com o `user_id`
+            historico = {"user_id": self.user_id}
+        except Exception as e:
+            # Trate qualquer outro tipo de erro que não seja específico
+            print(f"Erro ao obter histórico do usuário: {e}")
+            historico = {"user_id": self.user_id}
         info_status = info_screen.toggle_key_status(status, historico["user_id"], self.user_id)
 
         if status:
@@ -228,24 +236,30 @@ class MainApp(MDApp):
         except Exception as e:
             self.show_error_popup("Erro ao tentar login", str(e))
 
-    async def register_historico(self):
+    async def register_historico(self, status):
         """ Registra o histórico de acesso do usuário """
-        dados_historico = {
-            "sala_id": self.id_sala,
-            "usuario_id": self.user_id,
-            "data_hora_retirada": datetime.now().isoformat(),
-            "data_hora_devolucao": datetime.now().isoformat()
-        }
 
-        resposta = await self.api.enviar_historico(dados_historico)
-        await self.api_clientsalas.update_sala_status(sala_id=self.id_sala, is_ocupada=True)
+        await self.api_clientsalas.update_sala_status(sala_id=self.id_sala, is_ocupada=status)
 
-        self.refresh_buttons(2)
-        if resposta:
-            print("Histórico de acesso registrado com sucesso!")
+        if status:
+            dados_historico = {
+                "sala_id": self.id_sala,
+                "usuario_id": self.user_id,
+                "data_hora_retirada": datetime.now().isoformat(),
+
+            }
+
+            resposta = await self.api.enviar_historico(dados_historico)
+
+            self.refresh_buttons(2)
+            if resposta:
+                print("Histórico de acesso registrado com sucesso!")
+            else:
+                print("Erro ao registrar o histórico de acesso.")
+                print(f"Erro detalhado: {resposta}")
         else:
-            print("Erro ao registrar o histórico de acesso.")
-            print(f"Erro detalhado: {resposta}")
+            await self.api_clientsalas.update_historico_devolucao(self.id_sala, self.user_id)
+            self.refresh_buttons(2)
 
     def refresh_buttons(self, delay=1):
         """Atualiza os botões após uma alteração no status com um atraso."""
@@ -397,8 +411,8 @@ class MainApp(MDApp):
             self.root.current = 'login'
 
 
-    def on_click_register_historico(self):#trabalhando aqui implementaçao do passar o status
-        asyncio.run(self.register_historico())
+    def on_click_register_historico(self, status):#trabalhando aqui implementaçao do passar o status
+        asyncio.run(self.register_historico(status))
 
     def on_save_register_now(self):
         try:

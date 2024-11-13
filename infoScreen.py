@@ -138,7 +138,7 @@ kv = """
                         text: "Pegar"
                         md_bg_color: app.theme_cls.primary_color
                         pos_hint: {"center_x": 0.5}
-                        on_release: app.on_click_register_historico()
+                        on_release: app.on_click_register_historico(True)
 
                     MDRaisedButton:
                         id: devolver_button
@@ -147,7 +147,7 @@ kv = """
                         pos_hint: {"center_x": 0.5}
                         opacity: 0  # Inicialmente invisível
                         disabled: True  # Desativado até ser necessário
-                        on_release: root.toggle_key_status(root.current_key_id)
+                        on_release: app.on_click_register_historico(False)
 """
 
 Builder.load_string(kv)
