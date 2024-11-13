@@ -24,6 +24,23 @@ class APIClient:
             else:
                 return None
     #METODO que faz requisicao no metodo post e retona os dado do usuarios filtrado pelo ID
+
+    async def logout(self, token: str):
+        try:
+            async with httpx.AsyncClient() as client:
+                headers = {"Authorization": f"Bearer {token}"}
+                response = await client.post(f"{self.base_url}/api/v1/usuarios/logout", headers=headers)
+                response.raise_for_status()
+
+                # Retorna a resposta como um dicionário JSON
+                return response.json()
+
+        except httpx.RequestError as e:
+            print(f"Erro ao acessar a API: {e}")
+            return None
+        except httpx.HTTPStatusError as e:
+            print(f"Erro na resposta da API: {e.response.status_code} - {e.response.json()}")
+            return None
     async def fetch_user(self, user_id: int):
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{self.base_url}/api/v1/usuarios/{user_id}")

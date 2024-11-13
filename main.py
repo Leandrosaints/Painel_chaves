@@ -41,6 +41,7 @@ class MainApp(MDApp):
     user_id = None
     id_sala = None
 
+
     def build(self):
         try:
             Builder.load_string(kv)
@@ -175,6 +176,7 @@ class MainApp(MDApp):
             # Trate qualquer outro tipo de erro que não seja específico
             print(f"Erro ao obter histórico do usuário: {e}")
             historico = {"user_id": self.user_id}
+
         info_status = info_screen.toggle_key_status(status, historico["user_id"], self.user_id)
 
         if status:
@@ -199,12 +201,13 @@ class MainApp(MDApp):
                 # Passa os dados do usuário para preencher os campos
                 self._fill_info_screen_fields(info_screen, dados)
 
+
             else:
                 # Caso não consiga carregar as informações do usuário
                 print("Não foi possível carregar as informações do usuário.")
-
         # Muda para a tela de informações
         self.root.current = 'info_screen'
+
 
     def _fill_info_screen_fields(self, info_screen, dados):
         """ Preenche os campos da tela de informações """
@@ -215,8 +218,10 @@ class MainApp(MDApp):
             "telefone": info_screen.ids.phone_id,
         }
 
+
         for chave, campo in campos.items():
             campo.text = dados.get(chave, "Não informado")
+
 
     async def login(self):
         """ Realiza o login e armazena o token do usuário """
@@ -236,6 +241,11 @@ class MainApp(MDApp):
         except Exception as e:
             self.show_error_popup("Erro ao tentar login", str(e))
 
+    async def logout(self):
+
+        result = await self.api.logout(self.user_token)
+        if result:
+            self.root.current = 'login'
     async def register_historico(self, status):
         """ Registra o histórico de acesso do usuário """
 
@@ -422,6 +432,9 @@ class MainApp(MDApp):
 
     def _run_save_user_info(self):
         asyncio.run(self.save_user_info())
+
+    def on_logout(self):
+        asyncio.run(self.logout())
 
 
 if __name__ == "__main__":

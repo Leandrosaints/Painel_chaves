@@ -102,8 +102,10 @@ kv = """
                             text: "Opção 2"
                             on_release: nav_drawer.set_state("close")
                         OneLineListItem:
-                            text: "Opção 3"
-                            on_release: nav_drawer.set_state("close")
+                            text: "Logout"
+                            on_release:
+                                nav_drawer.set_state("close")
+                                app.on_logout()
 """
 
 Builder.load_string(kv)
