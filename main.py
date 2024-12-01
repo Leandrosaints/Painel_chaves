@@ -1,6 +1,7 @@
 import re
 from datetime import datetime
 import time
+from threading import Thread
 
 from kivy.clock import Clock
 from kivy.core.window import Window
@@ -15,6 +16,8 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.screenmanager import MDScreenManager
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
+
+from Loading import LoadingOverlay
 from login import LoginScreen
 from gestor import MainScreen  # Importar telas
 from infoScreen import InfoScreen
@@ -225,25 +228,48 @@ class MainApp(MDApp):
         for chave, campo in campos.items():
             campo.text = dados.get(chave, "Não informado")
 
-
     def login(self):
-        """ Realiza o login e armazena o token do usuário """
+        """Realiza o login e exibe a tela de loading"""
         try:
-            email = self.manager.get_screen("login").ids.email.text
-            senha = self.manager.get_screen("login").ids.senha.text
+            # Exibir overlay de carregamento
+            self.loading_overlay = LoadingOverlay()
+            self.loading_overlay.open()
 
-            token_info = self.api.authenticator(email, senha)
-            self.show_history_user = True
-            if token_info:
-                # Armazena o token e o ID do usuário
-                self.user_token = token_info["token"]
-                self.user_id = token_info["user_id"]
-                self.manager.current = "main"  # Muda para a tela principal
-            else:
-                self.show_error_popup("Erro", "Credenciais inválidas")
-                # Exibe um popup de erro
-        except Exception as e:
-            self.show_error_popup("Erro ao tentar login", str(e))
+            # Processar login em segundo plano
+            def process_login():
+                try:
+                    # Obter dados de login
+                    email = self.manager.get_screen("login").ids.email.text
+                    senha = self.manager.get_screen("login").ids.senha.text
+
+                    # Chamar a API
+                    token_info = self.api.authenticator(email, senha)
+
+                    if token_info:
+                        # Atualizar informações do usuário
+                        self.user_token = token_info["token"]
+                        self.user_id = token_info["user_id"]
+                        self.show_history_user = True
+
+                        # Redirecionar para a tela principal
+                        Clock.schedule_once(lambda dt: setattr(self.manager, "current", "main"), 0)
+                    else:
+                        # Exibir erro de credenciais inválidas
+                        Clock.schedule_once(lambda dt: self.show_error_popup("Erro", "Credenciais inválidas"), 0)
+                except Exception as ex:
+                    # Capturar mensagem de erro
+                    error_message = str(ex)
+                    Clock.schedule_once(lambda dt: self.show_error_popup("Erro ao tentar login", error_message), 0)
+                finally:
+                    # Fechar overlay de carregamento
+                    Clock.schedule_once(lambda dt: self.loading_overlay.dismiss(), 0)
+
+            # Executar o processo em um thread separado
+            Thread(target=process_login).start()
+
+        except Exception as ex:
+            # Exibir erro inesperado
+            self.show_error_popup("Erro inesperado", str(ex))
 
     def logout(self):
 

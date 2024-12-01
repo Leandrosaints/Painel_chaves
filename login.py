@@ -1,8 +1,12 @@
 import time
+
+from kivy.clock import Clock
 from kivy.config import Config
 from kivy.lang import Builder
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
+
+import gestor
 
 # Desativar gestos de toque (se necessário)
 Config.set('input', 'wm_pen', 'null')
@@ -108,8 +112,8 @@ class LoginScreen(MDScreen):
     def toggle_password_visibility(self, checkbox, password_field):
         password_field.password = not checkbox.active
 
-"""
-<LoadingScreen>:
+
+""""<LoadingScreen>:
     name: 'loading_screen'
     MDBoxLayout:
         orientation: 'vertical'
@@ -123,14 +127,14 @@ class LoginScreen(MDScreen):
             size_hint: None, None
             size: dp(46), dp(46)
             active: True
+"""
 
-
-class LoginApp(MDApp):
+''' class LoginApp(MDApp):
     def build(self):
         self.theme_cls.primary_palette = "Blue"
         return Builder.load_string(KV)
 
-    def login(self):
+   def login(self):
         email = self.root.get_screen('login_screen').ids.email.text
         senha = self.root.get_screen('login_screen').ids.senha.text
 
@@ -147,4 +151,4 @@ class LoginApp(MDApp):
         gestor.MyApp().run()
 
 if __name__ == "__main__":
-    LoginApp().run()"""
+    LoginApp().run()'''
