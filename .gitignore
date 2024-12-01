@@ -1,2 +1,6 @@
 __pycache__/
 *.pyc
+KivyMD/
+kivymd_env/
+requeriments.txt
+src/ui.jpg

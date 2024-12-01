@@ -90,6 +90,7 @@ kv = """
                     password: True
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
+               
 
             # Seção: Endereço
             MDCard:
@@ -184,9 +185,12 @@ kv = """
                 pos_hint: {"center_x": 0.5}
                 size_hint: None, None
                 size: dp(200), dp(48)
-                on_release: app.on_save_register_now()
+                on_release:
+                    app.on_save_register_now()
+                    
                 opacity: 1 if not root.show_history else 0  # Mostra somente no modo cadastro
                 disabled: root.show_history  # Desabilita no modo logado
+                
 
             MDRaisedButton:
                 text: "Atualizar Informações"
@@ -206,8 +210,9 @@ Builder.load_string(kv)
 class UserInfoScreen(MDScreen):
     show_history = BooleanProperty(False)
 
-    def toggle_show_history(self):
-        self.show_history = not self.show_history
+    def toggle_show_history(self, show_history:bool):
+        self.show_history = show_history
+
 
         # Ajusta a visibilidade do cartão de histórico
         if self.show_history:

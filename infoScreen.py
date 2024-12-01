@@ -2,14 +2,13 @@ from datetime import datetime
 
 from kivymd.uix.screen import MDScreen
 from kivy.lang import Builder
-from kivy.properties import ObjectProperty, ListProperty, NumericProperty, Clock
+from kivy.properties import ObjectProperty, ListProperty, Clock
 from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivy.animation import Animation
 from kivy.uix.image import Image
 from kivy.metrics import dp
-from kivymd.app import MDApp
 
 kv = """
 <InfoScreen>:
@@ -147,19 +146,21 @@ kv = """
                         pos_hint: {"center_x": 0.5}
                         opacity: 0  # Inicialmente invisível
                         disabled: True  # Desativado até ser necessário
-                        on_release: app.on_click_register_historico(False)
+                        on_release:
+                            app.on_click_register_historico(False)
+                            app.root.get_screen('info_screen').show_loading_dialog()
 """
 
 Builder.load_string(kv)
 
 
-from core.api_client import APIClientSalas
+from api_client import APIClientSalas
 class InfoScreen(MDScreen):
     status_label = ObjectProperty(None)  # Referência para o status label
     keys = ListProperty([])  # Lista de chaves
     current_key_id = None
     agora = datetime.now()
-    api =  APIClientSalas("http://localhost:8000")
+    api = APIClientSalas("http://127.0.0.1:8000")
 
     # Dividir em data e hora
 
@@ -194,9 +195,9 @@ class InfoScreen(MDScreen):
     def update_title(self, name):
         self.ids.info_title.text = f"{name}"
 
-    async def get_last_user_for_room(self, room_id):
+    def get_last_user_for_room(self, room_id):
         """Obtém o último usuário vinculado à sala a partir do histórico de acesso."""
-        historico = await self.api.get_historico_user(room_id)
+        historico = self.api.get_historico_user(room_id)
         if historico:
             return historico.get("usuario_id")  # Retorna o ID do último usuário que acessou a sala
         return None
@@ -218,6 +219,7 @@ class InfoScreen(MDScreen):
 
                 self.ids.devolver_button.opacity = 1
                 self.ids.devolver_button.disabled = False
+
             else:
                 self.ids.devolver_button.opacity = 0
                 self.ids.devolver_button.disabled = True

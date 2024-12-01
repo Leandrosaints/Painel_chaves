@@ -1,8 +1,11 @@
 import re
 from datetime import datetime
-import asyncio
+import time
 
 from kivy.clock import Clock
+from kivy.core.window import Window
+from kivymd.uix.button import MDFlatButton
+from kivymd.uix.dialog import MDDialog
 from passlib.context import CryptContext
 from kivy.lang import Builder
 from kivy.metrics import dp
@@ -17,7 +20,7 @@ from gestor import MainScreen  # Importar telas
 from infoScreen import InfoScreen
 from info_user import UserInfoScreen
 from redefinir_senha import ResetPasswordScreen
-from core.api_client import APIClient, APIClientSalas
+from api_client import APIClient, APIClientSalas
 
 kv = '''
 MDScreenManager:
@@ -35,21 +38,26 @@ def verificar_senha(senha: str, hash_senha: str) -> bool:
 
 
 class MainApp(MDApp):
-    api = APIClient("http://127.0.0.1:8000")
-    api_clientsalas =  APIClientSalas("http://localhost:8000")
+
     user_token = None  # Variável para armazenar o token do usuário
     user_id = None
     id_sala = None
+    show_history_user = False#controla widgets da info_iuser
+    last_activity_time =time.time()  # Armazena o horário da última atividade do usuário
+    inactivity_event = None
+    dialog = None
 
 
     def build(self):
         try:
+            self.api = APIClient("http://127.0.0.1:8000")
+            self.api_clientsalas = APIClientSalas("http://127.0.0.1:8000")
             Builder.load_string(kv)
             self.manager = MDScreenManager()
 
             # Adiciona as telas ao gerenciador
             self._add_screens()
-
+            self.on_start()
             return self.manager
         except Exception as e:
             self.show_error_popup("Erro ao construir a interface", str(e))
@@ -68,21 +76,27 @@ class MainApp(MDApp):
 
 
 
-    async def show_user_info_screen(self):
+    def show_user_info_screen(self):
         """ Exibe informações detalhadas do usuário na tela """
-        try:
-            user_info_screen = self.root.get_screen('info_user')
-            user_info_screen.toggle_show_history()  # Exibe a seção de histórico de salas
 
-            dados = await self.api.fetch_user(self.user_id)
-            historicos = await self.api.fetch_historico(self.user_id)
+        if self.user_token:
+
+            user_info_screen = self.root.get_screen('info_user')
+            # Exibe a seção de histórico de salas
+            dados = self.api.fetch_user(self.user_id, self.user_token)
+            user_info_screen.toggle_show_history(self.show_history_user)
+
+            historicos = self.api.fetch_historico(self.user_id, self.user_token)
+
 
             self._display_user_history(user_info_screen, historicos)
             self._fill_user_info_fields(user_info_screen, dados)
 
             self.root.current = 'info_user'
-        except Exception as e:
-            print("Ocorreu um erro:", str(e))
+        else:
+            self.show_history_user = False
+
+
 
     def _display_user_history(self, user_info_screen, historicos):
         """ Exibe o histórico do usuário na tela """
@@ -91,7 +105,7 @@ class MainApp(MDApp):
                 historico_item = self._create_historico_item(historico)
                 user_info_screen.ids.history_layout.add_widget(historico_item)
         else:
-            print("Nenhum histórico encontrado para o usuário.")
+            self.show_error_popup('atenção',"Nenhum histórico encontrado para o usuário.")
 
     def _create_historico_item(self, historico):
         """ Cria um item do histórico de acesso para exibição """
@@ -156,58 +170,47 @@ class MainApp(MDApp):
             user_info_screen.ids.city.text = cidade if cidade else "Não informado"
             user_info_screen.ids.state.text = estado if estado else "Não informado"
         else:
-            print("Usuário não encontrado ou sem dados!")
+            self.show_error_popup('Atenção',"Usuário não encontrado ou sem dados!")
 
-    async def show_info_screen(self, index, name, status):
+    def show_info_screen(self, index, name, status):
         info_screen = self.root.get_screen('info_screen')
         self.id_sala = index
-        # Atualiza o status dos botões na primeira vez
 
-        # Inicia o Clock para chamar toggle_key_status periodicamente, com o status atualizado
-        Clock.schedule_interval(lambda dt: info_status, 1)
+        # Inicia o Clock para chamar toggle_key_status periodicamente
+        Clock.schedule_interval(lambda dt: info_screen, 1)
 
+        # Atualiza o título da tela de informações
         info_screen.ids.info_title.text = f"{name}"
-        try:
-            historico = await self.api_clientsalas.get_historico_user(index)
-        except KeyError:  # Ou outra exceção específica, como IndexError ou um erro de conexão
-            # Se ocorrer um erro, cria um dicionário padrão com o `user_id`
-            historico = {"user_id": self.user_id}
-        except Exception as e:
-            # Trate qualquer outro tipo de erro que não seja específico
-            print(f"Erro ao obter histórico do usuário: {e}")
-            historico = {"user_id": self.user_id}
 
-        info_status = info_screen.toggle_key_status(status, historico["user_id"], self.user_id)
+        try:
+            # Tenta buscar o histórico do usuário
+            historico = self.api_clientsalas.get_historico_user(index, self.user_token)
+        except:
+            # Caso ocorra erro, define historico como None
+            historico = None
+
+        # Determina o ID do usuário do histórico ou usa o usuário atual
+        user_id_historico = historico.get("user_id", self.user_id) if historico else self.user_id
+
+        # Atualiza o status dos botões com base no status e histórico
+        info_screen.toggle_key_status(status, user_id_historico, self.user_id)
 
         if status:
-            # Se o status for True, exibe as informações do histórico do usuário
-             # Supondo que o 'index' seja o 'historico_id'
-            #print(historico)
+            # Se a chave está ocupada, exibe o histórico
             if historico:
-
                 self._fill_info_screen_fields(info_screen, historico)
             else:
-                # Caso não consiga carregar as informações do histórico
-                print("Não foi possível carregar as informações do histórico.")
-
-
+                self.show_error_popup('Atenção', 'Não foi possível carregar as informações do histórico')#print("Não foi possível carregar as informações do histórico.")
         else:
-            #info_screen.toggle_key_status(status)
-            # Aqui, vamos buscar os dados do usuário
-            dados = await self.api.fetch_user(self.user_id)
-
-
+            # Se a chave está disponível ou o histórico for inexistente, usa dados do usuário atual
+            dados = self.api.fetch_user(self.user_id, self.user_token)
             if dados:
-                # Passa os dados do usuário para preencher os campos
                 self._fill_info_screen_fields(info_screen, dados)
-
-
             else:
-                # Caso não consiga carregar as informações do usuário
-                print("Não foi possível carregar as informações do usuário.")
-        # Muda para a tela de informações
-        self.root.current = 'info_screen'
+                self.show_error_popup('Atenção', 'Não foi possível carregar as informações do usuário')#print("Não foi possível carregar as informações do usuário.")
 
+        # Exibe a tela de informações
+        self.root.current = 'info_screen'
 
     def _fill_info_screen_fields(self, info_screen, dados):
         """ Preenche os campos da tela de informações """
@@ -223,52 +226,58 @@ class MainApp(MDApp):
             campo.text = dados.get(chave, "Não informado")
 
 
-    async def login(self):
+    def login(self):
         """ Realiza o login e armazena o token do usuário """
         try:
             email = self.manager.get_screen("login").ids.email.text
             senha = self.manager.get_screen("login").ids.senha.text
 
-            token_info = await self.api.authenticator(email, senha)
-
+            token_info = self.api.authenticator(email, senha)
+            self.show_history_user = True
             if token_info:
                 # Armazena o token e o ID do usuário
                 self.user_token = token_info["token"]
                 self.user_id = token_info["user_id"]
                 self.manager.current = "main"  # Muda para a tela principal
             else:
-                self.show_error_popup("Erro", "Credenciais inválidas!")  # Exibe um popup de erro
+                self.show_error_popup("Erro", "Credenciais inválidas")
+                # Exibe um popup de erro
         except Exception as e:
             self.show_error_popup("Erro ao tentar login", str(e))
 
-    async def logout(self):
+    def logout(self):
 
-        result = await self.api.logout(self.user_token)
+        result = self.api.logout(self.user_token)
         if result:
+            self.user_token = None
+            self.show_history_user = False
+            user_info_screen = self.root.get_screen('info_user')
+            user_info_screen.toggle_show_history(self.show_history_user)
+
             self.root.current = 'login'
-    async def register_historico(self, status):
+    def register_historico(self, status):
         """ Registra o histórico de acesso do usuário """
 
-        await self.api_clientsalas.update_sala_status(sala_id=self.id_sala, is_ocupada=status)
+        self.api_clientsalas.update_sala_status(sala_id=self.id_sala, is_ocupada=status)
 
         if status:
             dados_historico = {
-                "sala_id": self.id_sala,
+                "numero_chave": self.id_sala,
                 "usuario_id": self.user_id,
                 "data_hora_retirada": datetime.now().isoformat(),
 
             }
 
-            resposta = await self.api.enviar_historico(dados_historico)
+            resposta = self.api.enviar_historico(dados_historico, self.user_token)
 
             self.refresh_buttons(2)
             if resposta:
-                print("Histórico de acesso registrado com sucesso!")
+                self.show_error_popup('Sucesso',"Histórico de acesso registrado com sucesso!")
             else:
-                print("Erro ao registrar o histórico de acesso.")
-                print(f"Erro detalhado: {resposta}")
+                self.show_error_popup('Erro',"Erro ao registrar o histórico de acesso.")
+
         else:
-            await self.api_clientsalas.update_historico_devolucao(self.id_sala, self.user_id)
+            self.api_clientsalas.update_historico_devolucao(self.id_sala, self.user_id, self.user_token)
             self.refresh_buttons(2)
 
     def refresh_buttons(self, delay=1):
@@ -278,9 +287,8 @@ class MainApp(MDApp):
 
     def _delayed_refresh(self, *args):
         tela_screen_main = self.root.get_screen('main')
-        asyncio.run(tela_screen_main.create_image_buttons())
-
-    async def reset_senha_async(self):
+        tela_screen_main.create_image_buttons()
+    def reset_senha(self):
         """ Redefine a senha do usuário """
         password_reset = self.root.get_screen('reset_senha')
         passwords = {
@@ -291,17 +299,17 @@ class MainApp(MDApp):
 
         if passwords["new_password"] == passwords["confirm_password"]:
             try:
-                response = await self.api.update_password(passwords["email"], passwords["new_password"])
+                response = self.api.update_password(passwords["email"], passwords["new_password"])
                 if response:
-                    print(f"Resposta da API: {response}")
+                    self.show_error_popup('Sucesso',f"Response: {response}")
                 else:
-                    print("Erro ao redefinir a senha.")
+                    self.show_error_popup('Erro',"Erro ao redefinir a senha.")
             except Exception as e:
-                print(f"Erro ao tentar enviar dados para o servidor: {str(e)}")
+                self.show_error_popup('atenção',f"Erro ao tentar enviar dados para o servidor: {str(e)}")
         else:
-            print("As senhas não correspondem.")
+            self.show_error_popup('Atenção',"As senhas não correspondem.")
 
-    async def save_user_info(self):
+    def save_user_info(self):
         user_info = self.root.get_screen('info_user')
 
         # Coleta os valores dos campos
@@ -327,18 +335,19 @@ class MainApp(MDApp):
 
         try:
             # Chama a API para registrar o usuário
-            response = await self.api.register_user_now(user_data)
+            response = self.api.register_user_now(user_data)
 
             # Verifica a resposta da API
             if response:
                 self.show_error_popup('Sucesso', "Dados inseridos com sucesso!")
+                self.root.current = 'login'
             else:
                 self.show_error_popup('Erro', "Erro ao cadastrar usuário. Tente novamente.")
 
         except Exception as e:
-            #print("Erro ao conectar-se com o servidor:", e)
+
             self.show_error_popup('Erro', f"Erro ao conectar-se com o servidor: {e}")
-    async def update_user_info(self):
+    def update_user_info(self):
         """ Atualiza as informações do usuário """
         user_info = self.root.get_screen('info_user')
         endereco_concatenado = self.formatar_endereco(
@@ -358,16 +367,39 @@ class MainApp(MDApp):
             "endereco": endereco_concatenado,
         }
 
-        result = await self.api.update_usuario(user_id=self.user_id, user_data=user_data)
-        await asyncio.sleep(2)  #
-        return result
+        result = self.api.update_usuario(user_id=self.user_id, user_data=user_data, token=self.user_token)
+        if result:
+            self.show_error_popup('Sucesso', 'Dados atualizados')
 
+            self.root.current = 'main'
+            return result
+        else:
+            self.show_error_popup('Erro', 'Erro ao salvar dados contacte os responsaveis!')
     def show_error_popup(self, title, message):
-        """ Exibe um popup de erro """
-        popup_content = Label(text=message)
-        popup = Popup(title=title, content=popup_content, size_hint=(0.8, 0.4))
-        popup.open()
+        """Exibe um MDDialog com título e mensagem"""
+        if not self.dialog:
+            self.dialog = MDDialog(
+                title=title,
+                text=message,
+                buttons=[
+                    MDFlatButton(
+                        text="OK",
+                        on_release=self.close_dialog
+                    )
+                ],
+            )
+        else:
+            # Atualiza o texto e título do diálogo existente
+            self.dialog.title = title
+            self.dialog.text = message
 
+        self.dialog.open()
+
+    def close_dialog(self, *args):
+        """Fecha o diálogo"""
+        if self.dialog:
+            self.dialog.dismiss()
+            self.dialog = None
 
 
 
@@ -401,18 +433,17 @@ class MainApp(MDApp):
 
         return logradouro, numero, bairro, cidade, estado
 
-    def on_click_info_salas(self, index, name, status):
+    #def on_click_info_salas(self, index, name, status):
 
-        """ Exibe informações detalhadas ao clicar em uma sala """
-        asyncio.run(self.show_info_screen(index, name, status))
+        #""" Exibe informações detalhadas ao clicar em uma sala """
+        #self.show_info_screen(index, name, status)
     def on_update_user(self):
-        asyncio.run(self.update_user_info())
+        self.update_user_info()
 
     def on_login_button_click(self):
-        asyncio.run(self.login())
+        self.login()
 
-    def on_user_dados(self):
-        asyncio.run(self.show_user_info_screen())
+
     def try_go_back_to_main(self):
         # Função para verificar o login e mudar a tela
         if self.user_token:
@@ -420,22 +451,88 @@ class MainApp(MDApp):
         else:
             self.root.current = 'login'
 
+    def go_to_info_user_clean(self):
+        # Obtém a referência da tela info_user
+        info_user_screen = self.root.get_screen('info_user')
+
+        # Limpa os campos individuais
+        info_user_screen.ids.first_name.text = ""
+        info_user_screen.ids.second_name.text = ""
+        info_user_screen.ids.funcao_id.text = ""
+        info_user_screen.ids.email.text = ""
+        info_user_screen.ids.senha.text = ""
+        info_user_screen.ids.phone.text = ""
+        info_user_screen.ids.address.text = ""
+        info_user_screen.ids.neighborhood.text = ""
+        info_user_screen.ids.house_number.text = ""
+        info_user_screen.ids.city.text = ""
+        info_user_screen.ids.state.text = ""
+
+        info_user_screen.ids.history_layout.clear_widgets()
+        # Alterar para a tela info_user
+        self.root.current = 'info_user'
+        info_user_screen.ids.show_history = False
 
     def on_click_register_historico(self, status):#trabalhando aqui implementaçao do passar o status
-        asyncio.run(self.register_historico(status))
+        self.register_historico(status)
 
     def on_save_register_now(self):
         try:
-            Clock.schedule_once(lambda dt: self._run_save_user_info())
+            Clock.schedule_once(lambda dt: self.save_user_info())
         except Exception as e:
             self.show_error_popup('Erro', "Tente novamente mais tarde: 422")
 
-    def _run_save_user_info(self):
-        asyncio.run(self.save_user_info())
+    #def _run_save_user_info(self):
+
 
     def on_logout(self):
-        asyncio.run(self.logout())
 
+        self.logout()
+
+        if self.root.current == 'login':
+            self.manager.get_screen("login").ids.email.text = ''
+            self.manager.get_screen("login").ids.senha.text = ''
+    def on_start(self):
+
+        # Inicie o monitoramento de inatividade quando o aplicativo for iniciado
+        self.reset_inactivity_timer()
+        Window.bind(on_touch_down=self.on_user_activity)
+
+    def on_stop(self):
+        # Pare o monitoramento de inatividade ao encerrar o app
+        if self.inactivity_event:
+            self.inactivity_event.cancel()
+
+    def on_pause(self):
+        # Pause o monitoramento quando o app estiver em pausa
+        if self.inactivity_event:
+            self.inactivity_event.cancel()
+        return True
+
+    def on_resume(self):
+        # Retome o monitoramento ao retornar do modo de pausa
+        self.reset_inactivity_timer()
+
+    def reset_inactivity_timer(self, *args):
+        """Reinicia o temporizador de inatividade."""
+        self.last_activity_time = time.time()
+
+        # Cancela o evento anterior, se houver
+        if self.inactivity_event:
+            self.inactivity_event.cancel()
+
+        # Agenda o monitoramento de inatividade para acontecer a cada segundo
+        self.inactivity_event = Clock.schedule_interval(self.check_inactivity, 600)
+
+    def on_user_activity(self, *args):
+        """Reseta o temporizador de inatividade ao detectar qualquer atividade do usuário."""
+        self.reset_inactivity_timer()
+
+    def check_inactivity(self, dt):
+        """Verifica o tempo de inatividade e desloga o usuário se o limite for atingido."""
+        current_time = time.time()
+        if current_time - self.last_activity_time > 10:
+            self.on_logout()
 
 if __name__ == "__main__":
 

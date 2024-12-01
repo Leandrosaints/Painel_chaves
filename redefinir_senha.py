@@ -67,7 +67,7 @@ kv_reset_password = """
             MDRaisedButton:
                 text: "Salvar"
                 pos_hint: {"center_x": 0.5}
-                on_release: app.on_reset_senha()
+                on_release: app.reset_senha()
 """
 
 Builder.load_string(kv_reset_password)
