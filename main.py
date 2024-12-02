@@ -77,29 +77,35 @@ class MainApp(MDApp):
         for screen in screens:
             self.manager.add_widget(screen)
 
-
-
     def show_user_info_screen(self):
         """ Exibe informações detalhadas do usuário na tela """
 
         if self.user_token:
+            # Inicia o overlay de carregamento
+            self.loading_overlay = LoadingOverlay()
+            self.loading_overlay.open()
 
             user_info_screen = self.root.get_screen('info_user')
-            # Exibe a seção de histórico de salas
-            dados = self.api.fetch_user(self.user_id, self.user_token)
-            user_info_screen.toggle_show_history(self.show_history_user)
 
-            historicos = self.api.fetch_historico(self.user_id, self.user_token)
+            # Função para buscar e exibir informações do usuário
+            def fetch_user_info(dt):
+                dados = self.api.fetch_user(self.user_id, self.user_token)
+                historicos = self.api.fetch_historico(self.user_id, self.user_token)
 
+                user_info_screen.toggle_show_history(self.show_history_user)
+                self._display_user_history(user_info_screen, historicos)
+                self._fill_user_info_fields(user_info_screen, dados)
 
-            self._display_user_history(user_info_screen, historicos)
-            self._fill_user_info_fields(user_info_screen, dados)
+                # Fecha o overlay de carregamento após as informações serem carregadas
+                self.loading_overlay.dismiss()
 
-            self.root.current = 'info_user'
+                # Exibe a tela de informações do usuário
+                self.root.current = 'info_user'
+
+            # Inicia a operação de busca de informações do usuário
+            Clock.schedule_once(fetch_user_info, 0)
         else:
             self.show_history_user = False
-
-
 
     def _display_user_history(self, user_info_screen, historicos):
         """ Exibe o histórico do usuário na tela """
@@ -179,41 +185,50 @@ class MainApp(MDApp):
         info_screen = self.root.get_screen('info_screen')
         self.id_sala = index
 
-        # Inicia o Clock para chamar toggle_key_status periodicamente
-        Clock.schedule_interval(lambda dt: info_screen, 1)
+        # Inicia o overlay de carregamento
+        self.loading_overlay = LoadingOverlay()
+        self.loading_overlay.open()
 
         # Atualiza o título da tela de informações
         info_screen.ids.info_title.text = f"{name}"
 
-        try:
-            # Tenta buscar o histórico do usuário
-            historico = self.api_clientsalas.get_historico_user(index, self.user_token)
-        except:
-            # Caso ocorra erro, define historico como None
-            historico = None
+        # Função para atualizar a tela de informações
+        def update_info_screen(dt):
+            try:
+                # Tenta buscar o histórico do usuário
+                historico = self.api_clientsalas.get_historico_user(index, self.user_token)
 
-        # Determina o ID do usuário do histórico ou usa o usuário atual
-        user_id_historico = historico.get("user_id", self.user_id) if historico else self.user_id
+                # Determina o ID do usuário do histórico ou usa o usuário atual
+                user_id_historico = historico.get("user_id", self.user_id) if historico else self.user_id
 
-        # Atualiza o status dos botões com base no status e histórico
-        info_screen.toggle_key_status(status, user_id_historico, self.user_id)
+                # Atualiza o status dos botões com base no status e histórico
+                info_screen.toggle_key_status(status, user_id_historico, self.user_id)
 
-        if status:
-            # Se a chave está ocupada, exibe o histórico
-            if historico:
-                self._fill_info_screen_fields(info_screen, historico)
-            else:
-                self.show_error_popup('Atenção', 'Não foi possível carregar as informações do histórico')#print("Não foi possível carregar as informações do histórico.")
-        else:
-            # Se a chave está disponível ou o histórico for inexistente, usa dados do usuário atual
-            dados = self.api.fetch_user(self.user_id, self.user_token)
-            if dados:
-                self._fill_info_screen_fields(info_screen, dados)
-            else:
-                self.show_error_popup('Atenção', 'Não foi possível carregar as informações do usuário')#print("Não foi possível carregar as informações do usuário.")
+                if status:
+                    # Se a chave está ocupada, exibe o histórico
+                    if historico:
+                        self._fill_info_screen_fields(info_screen, historico)
+                    else:
+                        self.show_error_popup('Atenção', 'Não foi possível carregar as informações do histórico.')
+                else:
+                    # Se a chave está disponível ou o histórico for inexistente, usa dados do usuário atual
+                    dados = self.api.fetch_user(self.user_id, self.user_token)
+                    if dados:
+                        self._fill_info_screen_fields(info_screen, dados)
+                    else:
+                        self.show_error_popup('Atenção', 'Não foi possível carregar as informações do usuário.')
 
-        # Exibe a tela de informações
-        self.root.current = 'info_screen'
+            except Exception as e:
+                self.show_error_popup('Erro', f'Erro ao buscar informações: {str(e)}')
+
+            # Fecha o overlay de carregamento após as operações
+            self.loading_overlay.dismiss()
+
+            # Exibe a tela de informações
+            self.root.current = 'info_screen'
+
+        # Inicia a atualização da tela de informações após um pequeno atraso
+        Clock.schedule_once(update_info_screen, 0)
 
     def _fill_info_screen_fields(self, info_screen, dados):
         """ Preenche os campos da tela de informações """
@@ -281,9 +296,15 @@ class MainApp(MDApp):
             user_info_screen.toggle_show_history(self.show_history_user)
 
             self.root.current = 'login'
+
     def register_historico(self, status):
         """ Registra o histórico de acesso do usuário """
 
+        # Inicia o overlay de carregamento
+        self.loading_overlay = LoadingOverlay()
+        self.loading_overlay.open()
+
+        # Atualiza o status da sala
         self.api_clientsalas.update_sala_status(sala_id=self.id_sala, is_ocupada=status)
 
         if status:
@@ -291,20 +312,35 @@ class MainApp(MDApp):
                 "numero_chave": self.id_sala,
                 "usuario_id": self.user_id,
                 "data_hora_retirada": datetime.now().isoformat(),
-
             }
 
-            resposta = self.api.enviar_historico(dados_historico, self.user_token)
+            # Função para enviar o histórico
+            def send_historico(dt):
+                resposta = self.api.enviar_historico(dados_historico, self.user_token)
 
-            self.refresh_buttons(2)
-            if resposta:
-                self.show_error_popup('Sucesso',"Histórico de acesso registrado com sucesso!")
-            else:
-                self.show_error_popup('Erro',"Erro ao registrar o histórico de acesso.")
+                self.refresh_buttons(2)
+                if resposta:
+                    self.show_error_popup('Sucesso', "Histórico de acesso registrado com sucesso!")
+                else:
+                    self.show_error_popup('Erro', "Erro ao registrar o histórico de acesso.")
+
+                # Fecha o overlay de carregamento após a operação
+                self.loading_overlay.dismiss()
+
+            # Inicia a operação de envio do histórico
+            Clock.schedule_once(send_historico, 0)
 
         else:
-            self.api_clientsalas.update_historico_devolucao(self.id_sala, self.user_id, self.user_token)
-            self.refresh_buttons(2)
+            # Se a chave não está ocupada, atualiza o histórico de devolução
+            def update_devolucao(dt):
+                self.api_clientsalas.update_historico_devolucao(self.id_sala, self.user_id, self.user_token)
+                self.refresh_buttons(2)
+
+                # Fecha o overlay de carregamento após a devolução
+                self.loading_overlay.dismiss()
+
+            # Inicia a operação de atualização do histórico de devolução
+            Clock.schedule_once(update_devolucao, 0)
 
     def refresh_buttons(self, delay=1):
         """Atualiza os botões após uma alteração no status com um atraso."""

@@ -148,7 +148,7 @@ kv = """
                         disabled: True  # Desativado até ser necessário
                         on_release:
                             app.on_click_register_historico(False)
-                            app.root.get_screen('info_screen').show_loading_dialog()
+                            ##app.root.get_screen('info_screen').show_loading_dialog()
 """
 
 Builder.load_string(kv)
@@ -195,12 +195,12 @@ class InfoScreen(MDScreen):
     def update_title(self, name):
         self.ids.info_title.text = f"{name}"
 
-    def get_last_user_for_room(self, room_id):
+    '''def get_last_user_for_room(self, room_id):
         """Obtém o último usuário vinculado à sala a partir do histórico de acesso."""
         historico = self.api.get_historico_user(room_id)
         if historico:
             return historico.get("usuario_id")  # Retorna o ID do último usuário que acessou a sala
-        return None
+        return None'''
 
     def toggle_key_status(self, status: bool, room_id: int, current_user_id: int):
         """Alterna o estado dos botões com base no status da chave e no usuário."""

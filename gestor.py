@@ -114,6 +114,9 @@ kv = """
 Builder.load_string(kv)
 
 
+
+from Loading import LoadingOverlay
+
 class MainScreen(MDScreen):
     container = ObjectProperty(None)
     api_client = APIClientSalas("http://127.0.0.1:8000")  # URL da API
@@ -172,7 +175,7 @@ class MainScreen(MDScreen):
                 button_layout = self.create_button_layout(sala)
                 self.container.add_widget(button_layout)
         except:
-           self.show_error_message("Erro: 'salas' não é uma lista válida.")
+           #self.show_error_message("Erro: 'salas' não é uma lista válida.")
            return  # Retorna sem tentar iterar
     def create_button_layout(self, sala):
         """Cria o layout de um botão de sala."""
@@ -271,9 +274,15 @@ class MainScreen(MDScreen):
 
     def create_on_release(self, button_id, name, status):
         """Cria a ação para o botão ao ser clicado."""
+
+       # def show_loading_screen(self, button_id, name, status):
+        # Add it to the current screen/widget
+            # Optionally, do something else like starting a loading animation
+
         return lambda btn: self.show_info_screen(button_id, name, status)
 
     def show_info_screen(self, index, name, status):
+
         """Exibe a tela de informações de uma sala."""
         app = MDApp.get_running_app()
         app.show_info_screen(index, name, status)
