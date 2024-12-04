@@ -181,6 +181,7 @@ class MainApp(MDApp):
         else:
             self.show_error_popup('Atenção',"Usuário não encontrado ou sem dados!")
 
+
     def show_info_screen(self, index, name, status):
         info_screen = self.root.get_screen('info_screen')
         self.id_sala = index
@@ -194,9 +195,11 @@ class MainApp(MDApp):
 
         # Função para atualizar a tela de informações
         def update_info_screen(dt):
+
             try:
                 # Tenta buscar o histórico do usuário
                 historico = self.api_clientsalas.get_historico_user(index, self.user_token)
+                print(historico)
 
                 # Determina o ID do usuário do histórico ou usa o usuário atual
                 user_id_historico = historico.get("user_id", self.user_id) if historico else self.user_id
@@ -205,12 +208,14 @@ class MainApp(MDApp):
                 info_screen.toggle_key_status(status, user_id_historico, self.user_id)
 
                 if status:
+
                     # Se a chave está ocupada, exibe o histórico
                     if historico:
                         self._fill_info_screen_fields(info_screen, historico)
                     else:
                         self.show_error_popup('Atenção', 'Não foi possível carregar as informações do histórico.')
                 else:
+
                     # Se a chave está disponível ou o histórico for inexistente, usa dados do usuário atual
                     dados = self.api.fetch_user(self.user_id, self.user_token)
                     if dados:
@@ -291,6 +296,7 @@ class MainApp(MDApp):
         result = self.api.logout(self.user_token)
         if result:
             self.user_token = None
+            self.user_id = None
             self.show_history_user = False
             user_info_screen = self.root.get_screen('info_user')
             user_info_screen.toggle_show_history(self.show_history_user)
@@ -300,11 +306,6 @@ class MainApp(MDApp):
     def register_historico(self, status):
         """ Registra o histórico de acesso do usuário """
 
-        # Inicia o overlay de carregamento
-        self.loading_overlay = LoadingOverlay()
-        self.loading_overlay.open()
-
-        # Atualiza o status da sala
         self.api_clientsalas.update_sala_status(sala_id=self.id_sala, is_ocupada=status)
 
         if status:
@@ -312,35 +313,20 @@ class MainApp(MDApp):
                 "numero_chave": self.id_sala,
                 "usuario_id": self.user_id,
                 "data_hora_retirada": datetime.now().isoformat(),
+
             }
 
-            # Função para enviar o histórico
-            def send_historico(dt):
-                resposta = self.api.enviar_historico(dados_historico, self.user_token)
+            resposta = self.api.enviar_historico(dados_historico, self.user_token)
 
-                self.refresh_buttons(2)
-                if resposta:
-                    self.show_error_popup('Sucesso', "Histórico de acesso registrado com sucesso!")
-                else:
-                    self.show_error_popup('Erro', "Erro ao registrar o histórico de acesso.")
 
-                # Fecha o overlay de carregamento após a operação
-                self.loading_overlay.dismiss()
-
-            # Inicia a operação de envio do histórico
-            Clock.schedule_once(send_historico, 0)
-
+            if resposta:
+                self.show_error_popup('Sucesso', "Histórico de acesso registrado com sucesso!")
+            else:
+                self.show_error_popup('Erro', "Erro ao registrar o histórico de acesso.")
+            self.refresh_buttons()
         else:
-            # Se a chave não está ocupada, atualiza o histórico de devolução
-            def update_devolucao(dt):
-                self.api_clientsalas.update_historico_devolucao(self.id_sala, self.user_id, self.user_token)
-                self.refresh_buttons(2)
-
-                # Fecha o overlay de carregamento após a devolução
-                self.loading_overlay.dismiss()
-
-            # Inicia a operação de atualização do histórico de devolução
-            Clock.schedule_once(update_devolucao, 0)
+            self.api_clientsalas.update_historico_devolucao(self.id_sala, self.user_id, self.user_token)
+            self.refresh_buttons()
 
     def refresh_buttons(self, delay=1):
         """Atualiza os botões após uma alteração no status com um atraso."""
@@ -349,7 +335,9 @@ class MainApp(MDApp):
 
     def _delayed_refresh(self, *args):
         tela_screen_main = self.root.get_screen('main')
-        tela_screen_main.create_image_buttons()
+        tela_screen_main.reload_salas()
+
+
     def reset_senha(self):
         """ Redefine a senha do usuário """
         password_reset = self.root.get_screen('reset_senha')

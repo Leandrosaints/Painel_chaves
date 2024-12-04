@@ -1,4 +1,5 @@
 import asyncio
+import time
 from threading import Thread
 
 from kivy.clock import Clock
@@ -8,13 +9,14 @@ from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivy.core.window import Window
 from kivy.metrics import dp
-from kivymd.uix.button import MDFlatButton
+from kivymd.uix.button import MDFlatButton, MDRoundFlatIconButton
 
 from kivy.uix.image import Image
 from kivy.uix.label import Label
 from kivy.uix.boxlayout import BoxLayout
 from kivy.animation import Animation
 
+from Loading import LoadingOverlay
 from api_client import APIClientSalas
 
 kv = """
@@ -115,29 +117,42 @@ Builder.load_string(kv)
 
 
 
-from Loading import LoadingOverlay
-
 class MainScreen(MDScreen):
     container = ObjectProperty(None)
     api_client = APIClientSalas("http://127.0.0.1:8000")  # URL da API
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        Clock.schedule_once(self.initialize_container, 0.1)
+        self.salas_cache = None  # Cache para dados das salas
+        self.cache_time = None  # Hora do último carregamento do cache
+        self.cache_duration = 60  # Cache válido por 60 segundos
+        self.is_retrying = False  # Controle para evitar tentativas simultâneas
 
     def on_kv_post(self, base_widget):
+        print("on_kv_post chamado")  # Debug
+        if not hasattr(self, "salas_cache"):
+            self.salas_cache = None
+            self.cache_time = None
+            self.cache_duration = 60
+            self.is_retrying = False
         self.initialize_container()
 
     def fetch_salas(self):
-        """Busca os dados das salas da API."""
-        return self.api_client.get_salas()
+        """Busca os dados das salas da API, com cache."""
+
+        try:
+            self.salas_cache = self.api_client.get_salas()
+
+            return self.salas_cache
+        except Exception as e:
+            print(f"Erro ao buscar salas: {e}")
+            return []
 
     def initialize_container(self, *args):
         """Inicializa o layout e configurações do container."""
         self.container = self.ids.container
-        Thread(target=self.create_image_buttons).start()
-        Window.bind(on_resize=self.update_grid_columns)
         self.update_grid_columns()
+        self.reload_salas()
 
     def update_grid_columns(self, *args):
         """Atualiza o número de colunas no grid com base no tamanho da janela."""
@@ -152,31 +167,66 @@ class MainScreen(MDScreen):
             self.container.spacing = [spacing, spacing]
             self.container.padding = [padding, padding]
 
-    def create_image_buttons(self):
-        """Cria botões com imagens representando salas."""
+    def reload_salas(self):
+        """Inicia o processo de recarregar as salas com overlay de carregamento."""
+        self.loading_overlay = LoadingOverlay()
+        self.loading_overlay.open()
+        Thread(target=self._reload_salas).start()
+
+    def _reload_salas(self):
+        """Carrega as salas em um thread separado e atualiza a interface."""
         try:
             salas = self.fetch_salas()
-            Clock.unschedule(self.retry_fetch)
+            # Atualiza os botões na interface principal
             Clock.schedule_once(lambda dt: self.populate_container(salas))
-
         except Exception as e:
-            #print(f"Erro ao conectar com ao servidor: {e}")
-            Clock.schedule_once(lambda dt: self.show_error_message(
-                "Serviço indisponível no momento. Tentando novamente..."
-            ))
-            Clock.schedule_interval(self.retry_fetch, 10)
+            print(f"Erro ao carregar salas: {e}")
+            # Exibe o botão de recarregar em caso de erro
+            Clock.schedule_once(lambda dt: self.show_reload_button())
+        finally:
+            # Dismiss o overlay após a operação
+            Clock.schedule_once(lambda dt: self.loading_overlay.dismiss())
 
     def populate_container(self, salas):
         """Popula o container com os botões das salas."""
-        try:
-            self.container.clear_widgets()
+        if not salas:
+            self.show_reload_button()  # Exibe botão de recarregar se salas estiver vazio ou None
+            return
 
-            for sala in salas:
-                button_layout = self.create_button_layout(sala)
-                self.container.add_widget(button_layout)
-        except:
-           #self.show_error_message("Erro: 'salas' não é uma lista válida.")
-           return  # Retorna sem tentar iterar
+        self.container.clear_widgets()
+        for sala in salas:
+            button_layout = self.create_button_layout(sala)
+            self.container.add_widget(button_layout)
+
+    def show_reload_button(self):
+        """Exibe um botão para recarregar as salas."""
+        self.container.clear_widgets()
+        reload_button = MDRoundFlatIconButton(
+            text="Indisponível, Recarregar Novamente!",
+            size_hint=(1, None),
+            height=dp(50),
+            pos_hint={"center_x": 0.8, "center_y": 0.5},
+            icon="refresh"
+        )
+        reload_button.bind(on_release=lambda btn: self.reload_salas())
+        self.container.add_widget(reload_button)
+
+    def create_image_buttons(self):
+        """Inicia a criação dos botões com imagens das salas."""
+        if not self.is_retrying:
+            self.is_retrying = True
+            Thread(target=self._create_image_buttons).start()
+
+    def _create_image_buttons(self):
+        """Thread para criar os botões das salas."""
+        try:
+            salas = self.fetch_salas()
+            Clock.schedule_once(lambda dt: self.populate_container(salas))
+            self.is_retrying = False
+        except Exception as e:
+            Clock.schedule_once(lambda dt: self.show_reload_button())
+            self.is_retrying = False
+
     def create_button_layout(self, sala):
         """Cria o layout de um botão de sala."""
         image_path_free = "src/chave_open.png"
@@ -185,36 +235,30 @@ class MainScreen(MDScreen):
         button_layout = BoxLayout(
             orientation='vertical',
             size_hint_y=None,
-            height=dp(50),  # Altura ajustada para comportar a imagem maior
+            height=dp(50),
             padding=[dp(15), dp(30), dp(3), dp(10)],
-            spacing=dp(10)  # Espaçamento entre o botão e as labels
+            spacing=dp(10)
         )
 
-        # Define a imagem do botão com base no estado da sala
         button_image = Image(
             source=image_path_occupied if sala['is_ocupada'] else image_path_free,
-            size_hint=(None, None),  # Adiciona controle de tamanho manual
-            size=(dp(50), dp(50)),  # Tamanho ajustado
-            allow_stretch=True,  # Permite que a imagem seja esticada para caber no tamanho
-            keep_ratio=True ,
-
+            size_hint=(None, None),
+            size=(dp(50), dp(50)),
+            allow_stretch=True,
+            keep_ratio=True
         )
 
-        # Botão com a imagem
         button = MDFlatButton(
             id=str(sala['numero']),
             on_release=self.create_on_release(sala['numero'], sala['nome'], sala["is_ocupada"]),
             size_hint=(None, None),
             size=(dp(50), dp(50)),
             pos_hint={'center_x': 0.6, 'center_y': 0.5},
-
         )
         button.add_widget(button_image)
 
-        # Layout para o número e nome da sala
         label_layout = self.create_label_layout(sala)
 
-        # Adiciona ao layout do botão
         button_layout.add_widget(button)
         button_layout.add_widget(label_layout)
 
@@ -227,7 +271,6 @@ class MainScreen(MDScreen):
             size_hint=(1, None),
             height=dp(40),
             spacing=dp(3),
-
         )
 
         number_label = Label(
@@ -255,34 +298,12 @@ class MainScreen(MDScreen):
 
         return label_layout
 
-    def show_error_message(self, message):
-        """Mostra uma mensagem de erro no container."""
-        self.container.clear_widgets()
-        error_label = Label(
-            text=message,
-            size_hint=(1, None),
-            height=dp(100),
-            color=(1, 0, 0, 1),
-            halign='center'
-        )
-        error_label.bind(size=error_label.setter('text_size'))
-        self.container.add_widget(error_label)
-
-    def retry_fetch(self, *args):
-        """Tenta buscar os dados novamente."""
-        self.create_image_buttons()
-
     def create_on_release(self, button_id, name, status):
         """Cria a ação para o botão ao ser clicado."""
-
-       # def show_loading_screen(self, button_id, name, status):
-        # Add it to the current screen/widget
-            # Optionally, do something else like starting a loading animation
-
         return lambda btn: self.show_info_screen(button_id, name, status)
 
     def show_info_screen(self, index, name, status):
-
         """Exibe a tela de informações de uma sala."""
         app = MDApp.get_running_app()
         app.show_info_screen(index, name, status)
+

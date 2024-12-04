@@ -136,17 +136,14 @@ class APIClient:
             headers = {
                 "Authorization": f"Bearer {token}"  # Adiciona o token no cabeçalho
             }
-            response = requests.get(
-                f"{self.base_url}/api/v1/usuarios/historicos/{user_historico_id}",
-                headers=headers
-            )
+            response = requests.get(f"{self.base_url}/api/v1/usuarios/historicos/{user_historico_id}",
+                                    headers=headers)
             response.raise_for_status()
 
             if response.status_code == 200:
-                historico_data = response.json()  # Converte a resposta para JSON
+                historico_data = response.json()
 
-                # Ajuste para trabalhar diretamente com a lista retornada
-                if isinstance(historico_data, list):
+                if isinstance(historico_data, list):  # Verifica se a resposta é uma lista
                     historicos = []
                     for h in historico_data:
                         sala_nome = h.get('sala_nome', 'Nome da sala não encontrado')
@@ -163,11 +160,6 @@ class APIClient:
                     logging.debug(f"Estrutura inesperada na resposta da API: {historico_data}")
                     return None
 
-            elif response.status_code == 404:
-                logging.debug(f"Histórico com ID {user_historico_id} não encontrado!")
-            else:
-                logging.error(f"Erro ao buscar histórico: {response.text}")
-            return None
 
         except requests.RequestException as e:
             logging.error(f"Erro ao acessar a API: {e}")
