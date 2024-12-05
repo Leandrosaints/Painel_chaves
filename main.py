@@ -3,9 +3,11 @@ from datetime import datetime
 import time
 from threading import Thread
 
+from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.core.window import Window
-from kivymd.uix.button import MDFlatButton
+from kivy.uix.image import Image
+from kivymd.uix.button import MDFlatButton, MDRoundFlatIconButton
 from kivymd.uix.dialog import MDDialog
 from passlib.context import CryptContext
 from kivy.lang import Builder
@@ -21,6 +23,7 @@ from Loading import LoadingOverlay
 from login import LoginScreen
 from gestor import MainScreen  # Importar telas
 from infoScreen import InfoScreen
+from screen_history import HistoryScreen
 from info_user import UserInfoScreen
 from redefinir_senha import ResetPasswordScreen
 from api_client import APIClient, APIClientSalas
@@ -72,7 +75,9 @@ class MainApp(MDApp):
             MainScreen(name="main"),
             InfoScreen(name="info_screen"),
             UserInfoScreen(name='info_user'),
-            ResetPasswordScreen(name='reset_senha')
+            ResetPasswordScreen(name='reset_senha'),
+            HistoryScreen(name='screen_history')
+
         ]
         for screen in screens:
             self.manager.add_widget(screen)
@@ -93,7 +98,7 @@ class MainApp(MDApp):
                 historicos = self.api.fetch_historico(self.user_id, self.user_token)
 
                 user_info_screen.toggle_show_history(self.show_history_user)
-                self._display_user_history(user_info_screen, historicos)
+                #self._display_user_history(user_info_screen, historicos)
                 self._fill_user_info_fields(user_info_screen, dados)
 
                 # Fecha o overlay de carregamento após as informações serem carregadas
@@ -107,14 +112,80 @@ class MainApp(MDApp):
         else:
             self.show_history_user = False
 
-    def _display_user_history(self, user_info_screen, historicos):
+    def _display_user_history(self):#ver tela de historico de sala dos user
+        self.screen_history = self.root.get_screen('screen_history')
+        if self.user_token:
+            # Inicia o overlay de carregamento
+            self.loading_overlay = LoadingOverlay()
+            self.loading_overlay.open()
+
+            #user_info_screen = self.root.get_screen('info_user')
+
+            # Função para buscar e exibir informações do usuário
+
+        #dados = self.api.fetch_user(self.user_id, self.user_token)
+        historicos = self.api.fetch_historico(self.user_id, self.user_token)
         """ Exibe o histórico do usuário na tela """
         if historicos:
             for historico in historicos:
                 historico_item = self._create_historico_item(historico)
-                user_info_screen.ids.history_layout.add_widget(historico_item)
+                self.screen_history.ids.history_layout.add_widget(historico_item)
+                self.root.current = 'screen_history'
+                self.loading_overlay.dismiss()
+
         else:
+
             self.show_error_popup('atenção',"Nenhum histórico encontrado para o usuário.")
+
+            self.root.current = 'screen_history'
+            self.button_reload_history()
+            self.loading_overlay.dismiss()
+    def button_reload_history(self):
+        """Exibe uma imagem de erro e um botão para recarregar."""
+        self.screen_history.ids.history_layout.clear_widgets()
+
+        # Adiciona a imagem de erro
+        self.error_image = Image(
+            source='src/history_anim.png',
+            size_hint=(1, None),
+            height=dp(100),
+            opacity=0  # Inicialmente invisível
+        )
+        self.screen_history.ids.history_layout.add_widget(self.error_image)
+
+        # Iniciar animação após um curto atraso
+        Clock.schedule_once(self.start_animation, 0.5)
+
+        # Rótulo de mensagem
+        name_label = Label(
+            text='Hummm, parece que não há histórico.',
+            size_hint=(1, None),
+            height=dp(18),
+            halign='center',
+            color=(0, 0, 0, 1)
+        )
+        name_label.bind(size=name_label.setter('text_size'))
+        self.screen_history.ids.history_layout.add_widget(name_label)
+
+        # Adiciona o botão de recarregar
+        reload_button = MDRoundFlatIconButton(
+            text="Recarregar",
+            size_hint=(1, None),
+            height=dp(50),
+            pos_hint={"center_x": 0.5, "center_y": 0.5},
+            icon="refresh"
+        )
+        reload_button.bind(on_release=lambda btn: self._display_user_history())
+        self.screen_history.ids.history_layout.add_widget(reload_button)
+
+    def start_animation(self, dt):
+        # Animação de subir e descer levemente
+        entry_anim = Animation(opacity=1, duration=1.2, t='out_cubic') + \
+                     Animation(y=self.error_image.y + dp(10), duration=0.6, t='in_out_sine') + \
+                     Animation(y=self.error_image.y, duration=0.6, t='in_out_sine')
+
+        entry_anim.repeat = True  # Faz a animação repetir indefinidamente
+        entry_anim.start(self.error_image)
 
     def _create_historico_item(self, historico):
         """ Cria um item do histórico de acesso para exibição """
@@ -518,10 +589,10 @@ class MainApp(MDApp):
         info_user_screen.ids.city.text = ""
         info_user_screen.ids.state.text = ""
 
-        info_user_screen.ids.history_layout.clear_widgets()
+        #info_user_screen.ids.history_layout.clear_widgets()
         # Alterar para a tela info_user
         self.root.current = 'info_user'
-        info_user_screen.ids.show_history = False
+        #info_user_screen.ids.show_history = False
 
     def on_click_register_historico(self, status):#trabalhando aqui implementaçao do passar o status
         self.register_historico(status)

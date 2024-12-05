@@ -248,34 +248,34 @@ class InfoScreen(MDScreen):
             self.padding = dp(20)
             self.dialog_ref = dialog_ref
 
-            # Ícone de verificação com animação
-            self.verified_icon = Image(
-                source="src/check.png",
-                size_hint=(None, None),
-                width=dp(50),
-                height=dp(50),
-                opacity=0  # Inicialmente invisível para a animação de entrada
-            )
-            self.add_widget(self.verified_icon)
+            # Ícone de verificação com anim   self.verified_icon = Image(
+            #                 source="src/check.png",
+            #                 size_hint=(None, None),
+            #                 width=dp(50),
+            #                 height=dp(50),
+            #                 opacity=0  # Inicialmente invisível para a animação de entrada
+            #             )
+            #             self.add_widget(self.verified_icon)
+            #
+            #             # Iniciar animação de subida e pulso
+            #             self.start_entry_animation()
+            #
+            #             # Botão OK
+            #             self.ok_button = MDRaisedButton(
+            #                 text="OK",
+            #                 pos_hint={"center_x": 0.5},
+            #                 on_release=self.dismiss_dialog
+            #             )
+            #             self.add_widget(self.ok_button)
+            #
+            #         def start_entry_animation(self):
+            #             # Animação de subida até o topo
+            #             entry_anim = Animation(y=self.height * 3.5, opacity=1, duration=1.2, t='out_cubic') + Animation(
+            #                 size=(dp(55), dp(55)), duration=0.3, t='in_out_sine') + Animation(
+            #                 size=(dp(50), dp(50)), duration=0.3, t='in_out_sine'
+            #             )
+            #             entry_anim.start(self.verified_icon)ação
 
-            # Iniciar animação de subida e pulso
-            self.start_entry_animation()
-
-            # Botão OK
-            self.ok_button = MDRaisedButton(
-                text="OK",
-                pos_hint={"center_x": 0.5},
-                on_release=self.dismiss_dialog
-            )
-            self.add_widget(self.ok_button)
-
-        def start_entry_animation(self):
-            # Animação de subida até o topo
-            entry_anim = Animation(y=self.height * 3.5, opacity=1, duration=1.2, t='out_cubic') + Animation(
-                size=(dp(55), dp(55)), duration=0.3, t='in_out_sine') + Animation(
-                size=(dp(50), dp(50)), duration=0.3, t='in_out_sine'
-            )
-            entry_anim.start(self.verified_icon)
 
         def dismiss_dialog(self, *args):
             self.dialog_ref.loading_dialog.dismiss()

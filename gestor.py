@@ -111,6 +111,14 @@ kv = """
                             IconLeftWidget:
                                 icon: "logout"  # Ícone de logout (pode usar qualquer ícone do Material Design)
 
+                        OneLineIconListItem:
+                            text: "Historico"
+                            on_release:
+                                nav_drawer.set_state("close")
+                                app._display_user_history()
+                            IconLeftWidget:
+                                icon: "history"
+                                
 """
 
 Builder.load_string(kv)

@@ -1,4 +1,6 @@
+from kivy.animation import Animation
 from kivy.lang import Builder
+from kivy.metrics import dp
 from kivy.properties import BooleanProperty
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
@@ -146,38 +148,8 @@ kv = """
                     helper_text_mode: "on_focus"
                     size_hint_x: 1
 
-            # Seção: Histórico de Salas Usadas
-            MDCard:
-                id: history_card
-                orientation: "vertical"
-                size_hint: 0.9, None
-                height: self.minimum_height if root.show_history else 0
-                padding: dp(50)
-               
-                pos_hint: {"center_x": 0.5}
-                ripple_behavior: True
-                adaptive_height: True
-                opacity: 1 if root.show_history else 0
-                # O tamanho do histórico é controlado via a lógica de show_history
             
-                MDLabel:
-                    text: "Histórico de Salas"
-                    font_style: "H6"
-                    theme_text_color: "Secondary"
-                    halign: "left"
-                    size_hint_y: None
-                    height: self.texture_size[1]
             
-                ScrollView:
-                    size_hint_y: None
-                    
-            
-                    MDBoxLayout:
-                        id: history_layout
-                        orientation: "vertical"
-                        spacing: dp(10)
-                      
-                        adaptive_height: True
 
             # Botões de Ação
             MDRaisedButton:
@@ -210,16 +182,20 @@ Builder.load_string(kv)
 class UserInfoScreen(MDScreen):
     show_history = BooleanProperty(False)
 
+
     def toggle_show_history(self, show_history:bool):
         self.show_history = show_history
 
 
+
+        #self.show_history = not self.show_history
+
         # Ajusta a visibilidade do cartão de histórico
-        if self.show_history:
-            self.ids.history_card.opacity = 1
+        '''if self.show_history:
+            #self.ids.history_card.opacity = 1
             self.ids.history_card.size_hint_y = None  # Faz o card ocupar o espaço necessário
             self.ids.history_card.height = self.ids.history_card.minimum_height  # Altura dinâmica
         else:
             self.ids.history_card.opacity = 0
             self.ids.history_card.size_hint_y = 0  # Não ocupa espaço no layout
-            self.ids.history_card.height = 0  # Sem altura quando invisível
+            self.ids.history_card.height = 0  # Sem altura quando invisível'''
